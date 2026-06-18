@@ -109,3 +109,36 @@ export function emailAlertaFactura(folio: string, requisicionId: string, nivel: 
     `),
   }
 }
+
+export function emailDescargaSATCompletada(empresa: string, mesPeriodo: string, totalCFDIs: number) {
+  return {
+    subject: `Descarga SAT completada: ${totalCFDIs} CFDIs de ${mesPeriodo} - ${empresa}`,
+    html: baseTemplate(`
+      <h2 style="color:#16A34A;margin:0 0 16px;">Descarga SAT completada</h2>
+      <p style="color:#334155;font-size:14px;line-height:1.6;">
+        Se han descargado <strong>${totalCFDIs} CFDIs</strong> de <strong>${mesPeriodo}</strong>
+        para <strong>${empresa}</strong> del portal del SAT.
+      </p>
+      <p style="color:#334155;font-size:14px;">Los comprobantes estan listos para conciliar.</p>
+      ${linkButton(`${APP_URL}/conciliacion/sat`, 'Ver CFDIs descargados')}
+    `),
+  }
+}
+
+export function emailDescargaSATError(empresa: string, mesPeriodo: string, error: string) {
+  return {
+    subject: `Error en descarga SAT: ${mesPeriodo} - ${empresa}`,
+    html: baseTemplate(`
+      <h2 style="color:#DC2626;margin:0 0 16px;">Error en descarga SAT</h2>
+      <p style="color:#334155;font-size:14px;line-height:1.6;">
+        Ocurrio un error al descargar los CFDIs de <strong>${mesPeriodo}</strong>
+        para <strong>${empresa}</strong>.
+      </p>
+      <div style="background-color:#FEF2F2;border-left:4px solid #DC2626;padding:12px 16px;margin:16px 0;border-radius:4px;">
+        <p style="color:#991B1B;font-size:14px;margin:0;"><strong>Error:</strong> ${error}</p>
+      </div>
+      <p style="color:#334155;font-size:14px;">Puedes reintentar la descarga desde el sistema.</p>
+      ${linkButton(`${APP_URL}/conciliacion/sat`, 'Ir al modulo SAT')}
+    `),
+  }
+}

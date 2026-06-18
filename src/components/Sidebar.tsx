@@ -9,6 +9,7 @@ import {
   Building2, ChevronDown, LogOut, Menu, X,
   LayoutDashboard, FileText, CheckCircle, CreditCard, Receipt,
   Settings, FolderKanban, Users, Tags, Landmark, BarChart3, Bell, Shield,
+  GitCompareArrows, FileCheck, History,
   type LucideIcon,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -29,6 +30,9 @@ const ICON_MAP: Record<string, LucideIcon> = {
   BarChart3,
   Bell,
   Shield,
+  GitCompareArrows,
+  FileCheck,
+  History,
 }
 
 interface SidebarProps {

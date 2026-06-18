@@ -625,3 +625,27 @@
 - [x] Registro en bitacora de auditoria
 - [x] Soporte para CFDIs emitidas y recibidas
 - [x] Soporte para formato XML y metadata
+
+### HU-038b · Interfaz SAT y historial de descargas
+**Como** administrador o tesorero
+**Quiero** una pantalla para solicitar descargas del SAT, ver el estatus y consultar los CFDIs
+**Para** gestionar la conciliacion fiscal de forma visual
+
+**Criterios de aceptacion:**
+- [x] Pantalla principal /conciliacion/sat con 5 secciones
+- [x] Formulario de solicitud: empresa, tipo, periodo, formato
+- [x] Validacion de duplicados con dialogo de confirmacion
+- [x] Seccion de carga historica para empresas nuevas
+- [x] Boton "Solicitar todas las descargas pendientes"
+- [x] KPIs: emitidos, recibidos, montos, pendientes, cancelados
+- [x] Tabla de seguimiento con auto-refresh cada 30 segundos
+- [x] Tabla de CFDIs con filtros, paginacion y exportar a Excel
+- [x] Badges de estatus con colores (verificando con spinner animado)
+- [x] Pantalla /conciliacion/sat/historial con KPIs globales
+- [x] Historial con filtros, tabla y drawer de detalle con timeline
+- [x] Sidebar: seccion Conciliacion con SAT, Historial SAT, Bancaria
+- [x] Notificaciones al completar/fallar descarga
+- [x] Emails de descarga completada y error SAT
+- [x] Tabla sat_archivos_recibidos + columnas adicionales en sat_solicitudes
+- [x] Server actions: solicitar, historico, obtener solicitudes, obtener CFDIs, historial
+- [x] Accesible para roles admin y tesorero

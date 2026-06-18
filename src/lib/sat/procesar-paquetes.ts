@@ -88,6 +88,8 @@ export async function procesarPaquetes(solicitudId: string): Promise<ProcesarRes
     return { success: false, cfdisProcesados: 0, paquetesDescargados: 0, error: 'La solicitud no esta lista para descargar' }
   }
 
+  const startTime = Date.now()
+
   // Mark as downloading
   await supabase
     .from('sat_solicitudes')
@@ -180,6 +182,8 @@ export async function procesarPaquetes(solicitudId: string): Promise<ProcesarRes
         estatus: 'completada',
         total_cfdi: cfdisProcesados,
         paquetes_descargados: paquetesDescargados,
+        fecha_completada: new Date().toISOString(),
+        duracion_segundos: Math.round((Date.now() - startTime) / 1000),
         updated_at: new Date().toISOString(),
       })
       .eq('id', solicitudId)
@@ -192,6 +196,17 @@ export async function procesarPaquetes(solicitudId: string): Promise<ProcesarRes
       entidadId: solicitudId,
       datosNuevos: { cfdisProcesados, paquetesDescargados },
     })
+
+    // Create notification for the requester
+    if (solicitud.solicitado_por_id) {
+      await supabase.from('notificaciones').insert({
+        usuario_id: solicitud.solicitado_por_id,
+        tipo: 'descarga_sat',
+        titulo: `Descarga SAT completada`,
+        mensaje: `Se descargaron ${cfdisProcesados} CFDIs de ${solicitud.mes_periodo || ''} para conciliar.`,
+        leida: false,
+      })
+    }
 
     return { success: true, cfdisProcesados, paquetesDescargados }
   } catch (err) {
@@ -216,6 +231,24 @@ export async function procesarPaquetes(solicitudId: string): Promise<ProcesarRes
       resultado: 'fallido',
       metadata: { error: errorMsg, cfdisProcesados, paquetesDescargados },
     })
+
+    // Notify admins of error
+    const { data: admins } = await supabase
+      .from('perfiles')
+      .select('id')
+      .eq('rol', 'admin')
+      .eq('activo', true)
+
+    if (admins) {
+      const notifs = admins.map(a => ({
+        usuario_id: a.id,
+        tipo: 'error_sat',
+        titulo: 'Error en descarga SAT',
+        mensaje: `Error procesando ${solicitud.mes_periodo || ''}: ${errorMsg}`,
+        leida: false,
+      }))
+      await supabase.from('notificaciones').insert(notifs)
+    }
 
     return { success: false, cfdisProcesados, paquetesDescargados, error: errorMsg }
   }

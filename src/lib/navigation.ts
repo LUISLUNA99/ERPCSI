@@ -52,6 +52,32 @@ export const navigation: NavItemSerializable[] = [
     roles: ['admin', 'director', 'tesorero', 'operario', 'visualizador'],
   },
   {
+    label: 'Conciliacion',
+    href: '/conciliacion',
+    iconName: 'GitCompareArrows',
+    roles: ['admin', 'tesorero'],
+    children: [
+      {
+        label: 'SAT',
+        href: '/conciliacion/sat',
+        iconName: 'FileCheck',
+        roles: ['admin', 'tesorero'],
+      },
+      {
+        label: 'Historial SAT',
+        href: '/conciliacion/sat/historial',
+        iconName: 'History',
+        roles: ['admin', 'tesorero'],
+      },
+      {
+        label: 'Bancaria',
+        href: '/conciliacion/bancaria',
+        iconName: 'Landmark',
+        roles: ['admin', 'tesorero'],
+      },
+    ],
+  },
+  {
     label: 'Administracion',
     href: '/admin',
     iconName: 'Settings',
