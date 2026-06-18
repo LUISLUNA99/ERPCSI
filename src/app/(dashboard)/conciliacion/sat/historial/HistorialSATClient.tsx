@@ -8,8 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { obtenerHistorial } from '@/app/actions/sat/obtener-historial.actions'
-import { FileCheck, Clock, Building2, Calendar, Download, FileText, RefreshCw, AlertCircle } from 'lucide-react'
+import { verificarYProcesarSolicitud } from '@/app/actions/sat/verificar-y-procesar.actions'
+import { reintentarSolicitud } from '@/app/actions/sat/obtener-solicitudes.actions'
+import { FileCheck, Clock, Building2, Calendar, Download, FileText, RefreshCw, AlertCircle, Loader2, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { toast } from 'sonner'
 
 interface Empresa {
   id: string
@@ -133,6 +136,7 @@ export function HistorialSATClient({
   const [loading, setLoading] = useState(false)
   const [selectedSolicitud, setSelectedSolicitud] = useState<SolicitudHistorial | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [verificandoId, setVerificandoId] = useState<string | null>(null)
 
   // Filtros
   const [empresaId, setEmpresaId] = useState<string>('')
@@ -180,6 +184,37 @@ export function HistorialSATClient({
   function abrirDetalle(solicitud: SolicitudHistorial) {
     setSelectedSolicitud(solicitud)
     setSheetOpen(true)
+  }
+
+  async function handleVerificar(e: React.MouseEvent, solicitudId: string) {
+    e.stopPropagation()
+    setVerificandoId(solicitudId)
+    try {
+      const result = await verificarYProcesarSolicitud(solicitudId)
+      if (result.estatus === 'completada') {
+        toast.success(`Descarga completada: ${result.cfdisProcesados ?? result.totalCfdi ?? 0} CFDIs procesados`)
+      } else if (result.estatus === 'verificando') {
+        toast.info('El SAT aun esta preparando los paquetes. Tiempo estimado: 1-24 horas.')
+      } else if (result.estatus === 'error') {
+        toast.error(result.error || 'Error al verificar la solicitud')
+      } else if (result.estatus === 'lista') {
+        toast.success('Paquetes listos. Iniciando descarga...')
+      } else {
+        toast.info('Solicitud actualizada')
+      }
+      aplicarFiltros()
+    } catch {
+      toast.error('Error al consultar el SAT')
+    } finally {
+      setVerificandoId(null)
+    }
+  }
+
+  async function handleReintentar(e: React.MouseEvent, solicitudId: string) {
+    e.stopPropagation()
+    const result = await reintentarSolicitud(solicitudId)
+    if ('error' in result) toast.error(result.error)
+    else { toast.success('Solicitud reenviada'); aplicarFiltros() }
   }
 
   return (
@@ -379,6 +414,7 @@ export function HistorialSATClient({
                     <TableHead>Fecha solicitud</TableHead>
                     <TableHead>Fecha completada</TableHead>
                     <TableHead>Duracion</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -421,6 +457,40 @@ export function HistorialSATClient({
                         <TableCell>{formatFecha(solicitud.fecha_completada)}</TableCell>
                         <TableCell>
                           {calcularDuracion(solicitud.created_at, solicitud.fecha_completada)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                            {(solicitud.estatus === 'pendiente' || solicitud.estatus === 'verificando') && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => handleVerificar(e, solicitud.id)}
+                                disabled={verificandoId === solicitud.id}
+                                className={solicitud.estatus === 'verificando' ? 'border-blue-300 text-blue-700' : ''}
+                              >
+                                {verificandoId === solicitud.id ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Consultando...</> : <><RefreshCw className="h-3 w-3 mr-1" />Verificar</>}
+                              </Button>
+                            )}
+                            {solicitud.estatus === 'lista' && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => handleVerificar(e, solicitud.id)}
+                                disabled={verificandoId === solicitud.id}
+                                className="border-green-300 text-green-700"
+                              >
+                                {verificandoId === solicitud.id ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Descargando...</> : <><Download className="h-3 w-3 mr-1" />Descargar</>}
+                              </Button>
+                            )}
+                            {solicitud.estatus === 'descargando' && (
+                              <span className="inline-flex items-center text-xs text-blue-600"><Loader2 className="h-3 w-3 mr-1 animate-spin" />En proceso</span>
+                            )}
+                            {solicitud.estatus === 'error' && (
+                              <Button variant="ghost" size="sm" onClick={(e) => handleReintentar(e, solicitud.id)} className="text-red-600">
+                                <RotateCcw className="h-3 w-3 mr-1" />Reintentar
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     )
