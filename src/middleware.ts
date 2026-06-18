@@ -13,7 +13,7 @@ const ROUTE_PERMISSIONS: Record<string, Rol[]> = {
   '/aprobaciones': ['admin', 'director'],
   '/pagos': ['admin', 'tesorero'],
   '/facturas': ['admin', 'tesorero', 'operario'],
-  '/conciliacion': ['admin', 'director', 'tesorero', 'visualizador'],
+  '/conciliacion': ['admin', 'tesorero'],
   '/admin': ['admin'],
   '/reportes': ['admin', 'director', 'tesorero', 'visualizador'],
   '/notificaciones': ['admin', 'director', 'tesorero', 'operario', 'visualizador'],

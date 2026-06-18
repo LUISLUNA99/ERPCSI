@@ -6,7 +6,7 @@
     },
     {
       "path": "/api/cron/sat",
-      "schedule": "*/30 * * * *"
+      "schedule": "0 */6 * * *"
     }
   ]
 }

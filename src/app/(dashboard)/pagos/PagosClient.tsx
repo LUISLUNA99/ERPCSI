@@ -11,7 +11,7 @@ import { EstatusBadge } from '@/components/StatusBadge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { programarPago, ejecutarPago } from '@/app/actions/pagos.actions'
-import { Calendar, CreditCard, Eye, Loader2, Banknote } from 'lucide-react'
+import { Calendar, CreditCard, Eye, Loader2, Banknote, FileUp } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Requisicion {
@@ -50,6 +50,7 @@ export function PagosClient({ requisiciones, bancos }: Props) {
   const [selectedReq, setSelectedReq] = useState<Requisicion | null>(null)
   const [loading, setLoading] = useState(false)
   const [bancoId, setBancoId] = useState('')
+  const [comprobanteName, setComprobanteName] = useState<string | null>(null)
 
   const aprobadas = requisiciones.filter((r) => r.estatus === 'APROBADO')
   const programadas = requisiciones.filter((r) => r.estatus === 'PROGRAMADO')
@@ -63,6 +64,7 @@ export function PagosClient({ requisiciones, bancos }: Props) {
   function openEjecutar(req: Requisicion) {
     setSelectedReq(req)
     setDialogType('ejecutar')
+    setComprobanteName(null)
   }
 
   async function handleProgramar(e: React.FormEvent<HTMLFormElement>) {
@@ -213,6 +215,25 @@ export function PagosClient({ requisiciones, bancos }: Props) {
                 </div>
               </div>
             )}
+            <div className="space-y-2">
+              <Label htmlFor="comprobante_file">Comprobante de pago (PDF) *</Label>
+              <div className="flex items-center gap-2">
+                <label className="flex-1 flex items-center gap-2 px-3 py-2 border rounded-md cursor-pointer hover:bg-gray-50 transition-colors">
+                  <FileUp className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <span className="text-sm truncate text-muted-foreground">
+                    {comprobanteName || 'Seleccionar comprobante PDF...'}
+                  </span>
+                  <input
+                    type="file"
+                    id="comprobante_file"
+                    name="comprobante_file"
+                    accept=".pdf"
+                    className="hidden"
+                    onChange={(e) => setComprobanteName(e.target.files?.[0]?.name || null)}
+                  />
+                </label>
+              </div>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="observaciones_pago">Observaciones</Label>
               <Textarea id="observaciones_pago" name="observaciones_pago" rows={2} />

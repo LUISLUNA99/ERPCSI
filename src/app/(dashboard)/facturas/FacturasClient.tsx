@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { subirFactura } from '@/app/actions/facturas.actions'
-import { Receipt, Loader2, AlertTriangle } from 'lucide-react'
+import { Receipt, Loader2, AlertTriangle, FileUp } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Requisicion {
@@ -34,6 +34,15 @@ export function FacturasClient({ requisiciones }: { requisiciones: Requisicion[]
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedReq, setSelectedReq] = useState<Requisicion | null>(null)
   const [loading, setLoading] = useState(false)
+  const [pdfName, setPdfName] = useState<string | null>(null)
+  const [xmlName, setXmlName] = useState<string | null>(null)
+
+  function openDialog(req: Requisicion) {
+    setSelectedReq(req)
+    setPdfName(null)
+    setXmlName(null)
+    setDialogOpen(true)
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -92,7 +101,7 @@ export function FacturasClient({ requisiciones }: { requisiciones: Requisicion[]
                         <span className="text-muted-foreground">Pagado: {r.pagos?.[0]?.fecha_pago}</span>
                       </div>
                     </div>
-                    <Button size="sm" onClick={() => { setSelectedReq(r); setDialogOpen(true) }} className="bg-accent-500 hover:bg-accent-600 text-white">
+                    <Button size="sm" onClick={() => openDialog(r)} className="bg-accent-500 hover:bg-accent-600 text-white">
                       <Receipt className="w-4 h-4 mr-1" /> Subir factura
                     </Button>
                   </div>
@@ -118,6 +127,47 @@ export function FacturasClient({ requisiciones }: { requisiciones: Requisicion[]
             <div className="space-y-2">
               <Label htmlFor="fecha_factura">Fecha de factura</Label>
               <Input id="fecha_factura" name="fecha_factura" type="date" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="factura_file">Archivo PDF de la factura</Label>
+              <div className="flex items-center gap-2">
+                <label className="flex-1 flex items-center gap-2 px-3 py-2 border rounded-md cursor-pointer hover:bg-gray-50 transition-colors">
+                  <FileUp className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <span className="text-sm truncate text-muted-foreground">
+                    {pdfName || 'Seleccionar archivo PDF...'}
+                  </span>
+                  <input
+                    type="file"
+                    id="factura_file"
+                    name="factura_file"
+                    accept=".pdf"
+                    className="hidden"
+                    onChange={(e) => setPdfName(e.target.files?.[0]?.name || null)}
+                  />
+                </label>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="xml_file">Archivo XML CFDI</Label>
+              <div className="flex items-center gap-2">
+                <label className="flex-1 flex items-center gap-2 px-3 py-2 border rounded-md cursor-pointer hover:bg-gray-50 transition-colors">
+                  <FileUp className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <span className="text-sm truncate text-muted-foreground">
+                    {xmlName || 'Seleccionar archivo XML...'}
+                  </span>
+                  <input
+                    type="file"
+                    id="xml_file"
+                    name="xml_file"
+                    accept=".xml"
+                    className="hidden"
+                    onChange={(e) => setXmlName(e.target.files?.[0]?.name || null)}
+                  />
+                </label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Si adjuntas el XML, se extraera automaticamente el UUID, RFC y montos del CFDI
+              </p>
             </div>
             <div className="flex justify-end space-x-3">
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>

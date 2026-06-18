@@ -24,13 +24,18 @@ export function validateFile(file: File): string | null {
 export async function uploadFactura(
   supabase: SupabaseClient,
   file: File,
-  requisicionId: string
+  requisicionId: string,
+  empresaId?: string
 ): Promise<{ url: string; nombre: string } | { error: string }> {
   const validationError = validateFile(file)
   if (validationError) return { error: validationError }
 
   const ext = file.name.split('.').pop()?.toLowerCase()
-  const fileName = `${requisicionId}/${Date.now()}.${ext}`
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const prefix = empresaId ? `${empresaId}/${year}/${month}` : 'general'
+  const fileName = `${prefix}/${requisicionId}/${Date.now()}.${ext}`
 
   const { error } = await supabase.storage
     .from('facturas')
@@ -41,23 +46,34 @@ export async function uploadFactura(
 
   if (error) return { error: 'Error al subir el archivo: ' + error.message }
 
-  const { data: urlData } = supabase.storage
+  const { data: urlData } = await supabase.storage
     .from('facturas')
-    .getPublicUrl(fileName)
+    .createSignedUrl(fileName, 60 * 60 * 24 * 365) // 1 year
 
-  return { url: urlData.publicUrl, nombre: file.name }
+  if (!urlData?.signedUrl) {
+    // Fallback to public URL if signed URL fails
+    const { data: publicData } = supabase.storage.from('facturas').getPublicUrl(fileName)
+    return { url: publicData.publicUrl, nombre: file.name }
+  }
+
+  return { url: urlData.signedUrl, nombre: file.name }
 }
 
 export async function uploadComprobante(
   supabase: SupabaseClient,
   file: File,
-  requisicionId: string
+  requisicionId: string,
+  empresaId?: string
 ): Promise<{ url: string; nombre: string } | { error: string }> {
   const validationError = validateFile(file)
   if (validationError) return { error: validationError }
 
   const ext = file.name.split('.').pop()?.toLowerCase()
-  const fileName = `${requisicionId}/${Date.now()}.${ext}`
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const prefix = empresaId ? `${empresaId}/${year}/${month}` : 'general'
+  const fileName = `${prefix}/${requisicionId}/${Date.now()}.${ext}`
 
   const { error } = await supabase.storage
     .from('comprobantes')
@@ -68,9 +84,14 @@ export async function uploadComprobante(
 
   if (error) return { error: 'Error al subir el archivo: ' + error.message }
 
-  const { data: urlData } = supabase.storage
+  const { data: urlData } = await supabase.storage
     .from('comprobantes')
-    .getPublicUrl(fileName)
+    .createSignedUrl(fileName, 60 * 60 * 24 * 365) // 1 year
 
-  return { url: urlData.publicUrl, nombre: file.name }
+  if (!urlData?.signedUrl) {
+    const { data: publicData } = supabase.storage.from('comprobantes').getPublicUrl(fileName)
+    return { url: publicData.publicUrl, nombre: file.name }
+  }
+
+  return { url: urlData.signedUrl, nombre: file.name }
 }
