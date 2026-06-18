@@ -6,7 +6,7 @@ import { sendEmail } from '@/lib/email/send'
 import { registrarAccion } from '@/lib/auditoria'
 import { emailRequisicionAprobada, emailRequisicionRechazada } from '@/lib/email/templates'
 
-export async function aprobarRequisicion(requisicionId: string, observaciones?: string) {
+export async function aprobarRequisicion(requisicionId: string, observaciones?: string, mesProvision?: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'No autenticado' }
@@ -28,9 +28,12 @@ export async function aprobarRequisicion(requisicionId: string, observaciones?: 
   })
   if (apError) return { error: 'Error al registrar la aprobacion' }
 
+  const updateData: Record<string, string> = { estatus: 'APROBADO' }
+  if (mesProvision) updateData.mes_provision = mesProvision
+
   const { error } = await supabase
     .from('requisiciones')
-    .update({ estatus: 'APROBADO' })
+    .update(updateData)
     .eq('id', requisicionId)
   if (error) return { error: 'Error al actualizar la solicitud de compra' }
 

@@ -17,6 +17,7 @@ export async function getRequisicionesPorPagar() {
       empresas_paga:empresas!requisiciones_empresa_paga_id_fkey(nombre, codigo),
       proveedores(nombre),
       clasificaciones_gasto(nombre),
+      clasificacion_final:clasificaciones_gasto!requisiciones_clasificacion_final_id_fkey(nombre),
       perfiles!requisiciones_solicitante_id_fkey(nombre),
       pagos(id, fecha_programada, banco_empresa:bancos_empresa(banco, numero_cuenta))
     `)
@@ -56,7 +57,12 @@ export async function programarPago(requisicionId: string, formData: FormData) {
   })
   if (pagoError) return { error: 'Error al programar pago: ' + pagoError.message }
 
-  await supabase.from('requisiciones').update({ estatus: 'PROGRAMADO' }).eq('id', requisicionId)
+  const reqUpdate: Record<string, string | null> = { estatus: 'PROGRAMADO' }
+  const mesProvision = formData.get('mes_provision') as string
+  const clasificacionFinalId = formData.get('clasificacion_final_id') as string
+  if (mesProvision) reqUpdate.mes_provision = mesProvision
+  if (clasificacionFinalId) reqUpdate.clasificacion_final_id = clasificacionFinalId
+  await supabase.from('requisiciones').update(reqUpdate).eq('id', requisicionId)
 
   await supabase.from('historial_requisiciones').insert({
     requisicion_id: requisicionId,
@@ -143,7 +149,12 @@ export async function ejecutarPago(requisicionId: string, formData: FormData) {
   if (pagoError) return { error: 'Error al registrar pago' }
 
   const nuevoEstatus = req.tiene_factura_inicial ? 'COMPROBADO' : 'PAGADO'
-  await supabase.from('requisiciones').update({ estatus: nuevoEstatus }).eq('id', requisicionId)
+  const reqUpdate2: Record<string, string | null> = { estatus: nuevoEstatus }
+  const mesProvisionEj = formData.get('mes_provision') as string
+  const clasificacionFinalEj = formData.get('clasificacion_final_id') as string
+  if (mesProvisionEj) reqUpdate2.mes_provision = mesProvisionEj
+  if (clasificacionFinalEj) reqUpdate2.clasificacion_final_id = clasificacionFinalEj
+  await supabase.from('requisiciones').update(reqUpdate2).eq('id', requisicionId)
 
   await supabase.from('historial_requisiciones').insert({
     requisicion_id: requisicionId,

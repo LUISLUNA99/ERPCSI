@@ -21,13 +21,21 @@ interface Requisicion {
   concepto: string
   moneda: string
   importe_total: number
+  importe_sin_iva: number | null
+  iva: number | null
+  importe_me: number | null
   estatus: string
   mes_servicio: string
   mes_pago_deseado: string
+  mes_provision: string | null
   empresas_generadora: { id: string; nombre: string; codigo: string } | null
+  empresas_paga: { nombre: string; codigo: string } | null
   proveedores: { nombre: string } | null
   clasificaciones_gasto: { nombre: string } | null
+  clasificacion_final: { nombre: string } | null
+  proyectos: { centro_de_costo: string; nombre: string } | null
   perfiles: { nombre: string } | null
+  pagos: Array<{ folio_bancario: string | null; observaciones_pago: string | null }> | null
 }
 
 interface Empresa {
@@ -63,24 +71,48 @@ function exportToCSV(data: Requisicion[], filename: string) {
     'Folio',
     'Fecha',
     'Solicitante',
+    'Clasificacion Inicial',
+    'Clasificacion Final',
+    'Mes Provision',
+    'Mes Servicio',
+    'Mes Pago',
+    'Empresa Generadora',
+    'Empresa que Paga',
+    'Concepto del Pago',
     'Proveedor',
-    'Empresa',
-    'Concepto',
-    'Moneda',
-    'Importe Total',
+    'CC',
+    'Proyecto',
+    'Importe M.E. IVA Incluido',
+    'Importe Sin IVA M.N.',
+    'IVA',
+    'Importe M.N. IVA Incluido',
     'Estatus',
+    'Folio Bancario',
+    'Observaciones Tesoreria',
   ]
 
   const rows = data.map((r) => [
     r.folio,
     new Date(r.fecha_solicitud).toLocaleDateString('es-MX'),
     r.perfiles?.nombre || '',
-    r.proveedores?.nombre || '',
-    r.empresas_generadora?.nombre || '',
+    r.clasificaciones_gasto?.nombre || '',
+    r.clasificacion_final?.nombre || '',
+    r.mes_provision || '',
+    r.mes_servicio,
+    r.mes_pago_deseado,
+    r.empresas_generadora ? `${r.empresas_generadora.codigo} - ${r.empresas_generadora.nombre}` : '',
+    r.empresas_paga ? `${r.empresas_paga.codigo} - ${r.empresas_paga.nombre}` : '',
     `"${r.concepto.replace(/"/g, '""')}"`,
-    r.moneda,
+    r.proveedores?.nombre || '',
+    r.proyectos?.centro_de_costo || '',
+    r.proyectos?.nombre || '',
+    r.importe_me?.toFixed(2) || '',
+    r.importe_sin_iva?.toFixed(2) || '',
+    r.iva?.toFixed(2) || '',
     r.importe_total.toFixed(2),
     ESTATUS_LABELS[r.estatus] || r.estatus,
+    r.pagos?.[0]?.folio_bancario || '',
+    r.pagos?.[0]?.observaciones_pago ? `"${r.pagos[0].observaciones_pago.replace(/"/g, '""')}"` : '',
   ])
 
   const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n')
@@ -298,8 +330,14 @@ export function ReportesClient({ requisiciones, empresas, rol, canExport }: Prop
             <TableRow>
               <SortableHeader label="Folio" sortKey="folio" sortConfig={sortConfig} onSort={handleSort} />
               <SortableHeader label="Fecha" sortKey="fecha_solicitud" sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label="Solicitante" sortKey="perfiles.nombre" sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label="Clasif. Inicial" sortKey="clasificaciones_gasto.nombre" sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label="Clasif. Final" sortKey="clasificacion_final.nombre" sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label="Mes Provision" sortKey="mes_provision" sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label="Mes Servicio" sortKey="mes_servicio" sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label="Empresa Gen." sortKey="empresas_generadora.nombre" sortConfig={sortConfig} onSort={handleSort} />
               <SortableHeader label="Proveedor" sortKey="proveedores.nombre" sortConfig={sortConfig} onSort={handleSort} />
-              <SortableHeader label="Empresa" sortKey="empresas_generadora.nombre" sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label="CC" sortKey="proyectos.centro_de_costo" sortConfig={sortConfig} onSort={handleSort} />
               <SortableHeader label="Concepto" sortKey="concepto" sortConfig={sortConfig} onSort={handleSort} />
               <SortableHeader label="Importe Total" sortKey="importe_total" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
               <SortableHeader label="Estatus" sortKey="estatus" sortConfig={sortConfig} onSort={handleSort} />
@@ -308,7 +346,7 @@ export function ReportesClient({ requisiciones, empresas, rol, canExport }: Prop
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={13} className="text-center py-8 text-muted-foreground">
                   {search || filterEstatus !== 'todos' || filterEmpresa !== 'todas' || filterMes !== 'todos'
                     ? 'Sin resultados para los filtros aplicados'
                     : 'No hay solicitudes de compra registradas'}
@@ -324,17 +362,21 @@ export function ReportesClient({ requisiciones, empresas, rol, canExport }: Prop
                   <TableCell className="font-mono font-medium text-accent-500">
                     {r.folio}
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
+                  <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                     {new Date(r.fecha_solicitud).toLocaleDateString('es-MX')}
                   </TableCell>
-                  <TableCell className="text-sm">{r.proveedores?.nombre || '—'}</TableCell>
-                  <TableCell className="text-sm">
-                    {r.empresas_generadora
-                      ? `${r.empresas_generadora.codigo} - ${r.empresas_generadora.nombre}`
-                      : '—'}
+                  <TableCell className="text-sm">{r.perfiles?.nombre || '—'}</TableCell>
+                  <TableCell className="text-sm">{r.clasificaciones_gasto?.nombre || '—'}</TableCell>
+                  <TableCell className="text-sm">{r.clasificacion_final?.nombre || '—'}</TableCell>
+                  <TableCell className="text-sm">{r.mes_provision || '—'}</TableCell>
+                  <TableCell className="text-sm">{r.mes_servicio}</TableCell>
+                  <TableCell className="text-sm whitespace-nowrap">
+                    {r.empresas_generadora?.codigo || '—'}
                   </TableCell>
+                  <TableCell className="text-sm">{r.proveedores?.nombre || '—'}</TableCell>
+                  <TableCell className="text-sm font-mono">{r.proyectos?.centro_de_costo || '—'}</TableCell>
                   <TableCell className="text-sm max-w-[200px] truncate">{r.concepto}</TableCell>
-                  <TableCell className="text-right font-medium">
+                  <TableCell className="text-right font-medium whitespace-nowrap">
                     {formatCurrency(r.importe_total, r.moneda)}
                   </TableCell>
                   <TableCell>

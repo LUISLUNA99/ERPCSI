@@ -9,8 +9,10 @@ import { Label } from '@/components/ui/label'
 import { EstatusBadge } from '@/components/StatusBadge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { aprobarRequisicion, rechazarRequisicion } from '@/app/actions/aprobaciones.actions'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { CheckCircle, XCircle, Eye, Loader2, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
+import { getMesesOptions } from '@/lib/utils/meses'
 
 interface Requisicion {
   id: string
@@ -21,6 +23,7 @@ interface Requisicion {
   importe_total: number
   estatus: string
   mes_servicio: string
+  mes_provision: string | null
   proveedores: { nombre: string } | null
   empresas_generadora: { nombre: string; codigo: string } | null
   clasificaciones_gasto: { nombre: string } | null
@@ -33,6 +36,8 @@ export function AprobacionesClient({ requisiciones }: { requisiciones: Requisici
   const [dialogType, setDialogType] = useState<'aprobar' | 'rechazar' | null>(null)
   const [loading, setLoading] = useState(false)
   const [observaciones, setObservaciones] = useState('')
+  const [mesProvision, setMesProvision] = useState('')
+  const meses = getMesesOptions()
 
   const pendientes = requisiciones.filter((r) => r.estatus === 'EN_REVISION')
 
@@ -40,12 +45,13 @@ export function AprobacionesClient({ requisiciones }: { requisiciones: Requisici
     setSelectedReq(req)
     setDialogType(type)
     setObservaciones('')
+    setMesProvision(req.mes_provision || '')
   }
 
   async function handleAprobar() {
     if (!selectedReq) return
     setLoading(true)
-    const result = await aprobarRequisicion(selectedReq.id, observaciones || undefined)
+    const result = await aprobarRequisicion(selectedReq.id, observaciones || undefined, mesProvision || undefined)
     setLoading(false)
     if (result.error) { toast.error(result.error); return }
     toast.success(`Solicitud de compra ${selectedReq.folio} aprobada`)
@@ -164,6 +170,20 @@ export function AprobacionesClient({ requisiciones }: { requisiciones: Requisici
                 ${selectedReq?.importe_total.toLocaleString('es-MX', { minimumFractionDigits: 2 })} {selectedReq?.moneda}
               </p>
             </div>
+            {dialogType === 'aprobar' && (
+              <div className="space-y-2">
+                <Label>Mes de provision</Label>
+                <Select value={mesProvision} onValueChange={setMesProvision}>
+                  <SelectTrigger><SelectValue placeholder="Mes provision" /></SelectTrigger>
+                  <SelectContent>
+                    {meses.map((m) => (
+                      <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Puedes ajustar el mes de provision si es necesario</p>
+              </div>
+            )}
             <div className="space-y-2">
               <Label>
                 {dialogType === 'aprobar' ? 'Observaciones para el tesorero (opcional)' : 'Motivo del rechazo *'}

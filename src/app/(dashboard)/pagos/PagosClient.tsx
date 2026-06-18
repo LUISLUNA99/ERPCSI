@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { programarPago, ejecutarPago } from '@/app/actions/pagos.actions'
 import { Calendar, CreditCard, Eye, Loader2, Banknote, FileUp } from 'lucide-react'
 import { toast } from 'sonner'
+import { getMesesOptions } from '@/lib/utils/meses'
 
 interface Requisicion {
   id: string
@@ -22,11 +23,19 @@ interface Requisicion {
   importe_total: number
   estatus: string
   mes_pago_deseado: string
+  mes_provision: string | null
+  clasificacion_final_id: string | null
   tiene_factura_inicial: boolean
   proveedores: { nombre: string } | null
   empresas_paga: { nombre: string; codigo: string } | null
+  clasificaciones_gasto: { nombre: string } | null
   perfiles: { nombre: string } | null
   pagos: Array<{ id: string; fecha_programada: string; banco_empresa: { banco: string; numero_cuenta: string } | null }> | null
+}
+
+interface Clasificacion {
+  id: string
+  nombre: string
 }
 
 interface BancoEmpresa {
@@ -42,15 +51,19 @@ interface BancoEmpresa {
 interface Props {
   requisiciones: Requisicion[]
   bancos: BancoEmpresa[]
+  clasificaciones: Clasificacion[]
 }
 
-export function PagosClient({ requisiciones, bancos }: Props) {
+export function PagosClient({ requisiciones, bancos, clasificaciones }: Props) {
   const router = useRouter()
   const [dialogType, setDialogType] = useState<'programar' | 'ejecutar' | null>(null)
   const [selectedReq, setSelectedReq] = useState<Requisicion | null>(null)
   const [loading, setLoading] = useState(false)
   const [bancoId, setBancoId] = useState('')
   const [comprobanteName, setComprobanteName] = useState<string | null>(null)
+  const [mesProvision, setMesProvision] = useState('')
+  const [clasificacionFinalId, setClasificacionFinalId] = useState('')
+  const meses = getMesesOptions()
 
   const aprobadas = requisiciones.filter((r) => r.estatus === 'APROBADO')
   const programadas = requisiciones.filter((r) => r.estatus === 'PROGRAMADO')
@@ -59,12 +72,16 @@ export function PagosClient({ requisiciones, bancos }: Props) {
     setSelectedReq(req)
     setDialogType('programar')
     setBancoId('')
+    setMesProvision(req.mes_provision || '')
+    setClasificacionFinalId(req.clasificacion_final_id || '')
   }
 
   function openEjecutar(req: Requisicion) {
     setSelectedReq(req)
     setDialogType('ejecutar')
     setComprobanteName(null)
+    setMesProvision(req.mes_provision || '')
+    setClasificacionFinalId(req.clasificacion_final_id || '')
   }
 
   async function handleProgramar(e: React.FormEvent<HTMLFormElement>) {
@@ -73,6 +90,8 @@ export function PagosClient({ requisiciones, bancos }: Props) {
     setLoading(true)
     const formData = new FormData(e.currentTarget)
     formData.set('banco_empresa_id', bancoId)
+    if (mesProvision) formData.set('mes_provision', mesProvision)
+    if (clasificacionFinalId) formData.set('clasificacion_final_id', clasificacionFinalId)
     const result = await programarPago(selectedReq.id, formData)
     setLoading(false)
     if (result.error) { toast.error(result.error); return }
@@ -86,6 +105,8 @@ export function PagosClient({ requisiciones, bancos }: Props) {
     if (!selectedReq) return
     setLoading(true)
     const formData = new FormData(e.currentTarget)
+    if (mesProvision) formData.set('mes_provision', mesProvision)
+    if (clasificacionFinalId) formData.set('clasificacion_final_id', clasificacionFinalId)
     const result = await ejecutarPago(selectedReq.id, formData)
     setLoading(false)
     if (result.error) { toast.error(result.error); return }
@@ -167,6 +188,30 @@ export function PagosClient({ requisiciones, bancos }: Props) {
               <Label htmlFor="fecha_programada">Fecha programada *</Label>
               <Input id="fecha_programada" name="fecha_programada" type="date" required />
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Mes de provision</Label>
+                <Select value={mesProvision} onValueChange={setMesProvision}>
+                  <SelectTrigger><SelectValue placeholder="Mes provision" /></SelectTrigger>
+                  <SelectContent>
+                    {meses.map((m) => (
+                      <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Clasificacion final</Label>
+                <Select value={clasificacionFinalId} onValueChange={setClasificacionFinalId}>
+                  <SelectTrigger><SelectValue placeholder="Selecciona clasificacion" /></SelectTrigger>
+                  <SelectContent>
+                    {clasificaciones.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="observaciones">Observaciones</Label>
               <Textarea id="observaciones" name="observaciones" rows={2} />
@@ -232,6 +277,30 @@ export function PagosClient({ requisiciones, bancos }: Props) {
                     onChange={(e) => setComprobanteName(e.target.files?.[0]?.name || null)}
                   />
                 </label>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Mes de provision</Label>
+                <Select value={mesProvision} onValueChange={setMesProvision}>
+                  <SelectTrigger><SelectValue placeholder="Mes provision" /></SelectTrigger>
+                  <SelectContent>
+                    {meses.map((m) => (
+                      <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Clasificacion final</Label>
+                <Select value={clasificacionFinalId} onValueChange={setClasificacionFinalId}>
+                  <SelectTrigger><SelectValue placeholder="Selecciona clasificacion" /></SelectTrigger>
+                  <SelectContent>
+                    {clasificaciones.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="space-y-2">

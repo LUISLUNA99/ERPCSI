@@ -31,6 +31,7 @@ export function NuevaRequisicionForm({ empresas, proveedores, clasificaciones, p
   const [clasificacionId, setClasificacionId] = useState('')
   const [mesServicio, setMesServicio] = useState('')
   const [mesPago, setMesPago] = useState('')
+  const [mesProvision, setMesProvision] = useState('')
   const [empresaGenId, setEmpresaGenId] = useState('')
   const [empresaPagaId, setEmpresaPagaId] = useState('')
   const [proyectoId, setProyectoId] = useState('')
@@ -74,6 +75,7 @@ export function NuevaRequisicionForm({ empresas, proveedores, clasificaciones, p
     formData.set('clasificacion_id', clasificacionId)
     formData.set('mes_servicio', mesServicio)
     formData.set('mes_pago_deseado', mesPago)
+    if (mesProvision) formData.set('mes_provision', mesProvision)
     formData.set('empresa_generadora_id', empresaGenId)
     formData.set('empresa_paga_id', empresaPagaId || empresaGenId)
     formData.set('proyecto_id', proyectoId)
@@ -121,7 +123,7 @@ export function NuevaRequisicionForm({ empresas, proveedores, clasificaciones, p
       {/* Clasificacion y periodo */}
       <Card>
         <CardHeader><CardTitle className="text-lg">Clasificacion y periodo</CardTitle></CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="space-y-2">
             <Label>Tipo de gasto *</Label>
             <Select value={clasificacionId} onValueChange={setClasificacionId}>
@@ -137,6 +139,17 @@ export function NuevaRequisicionForm({ empresas, proveedores, clasificaciones, p
             <Label>Mes del servicio *</Label>
             <Select value={mesServicio} onValueChange={setMesServicio}>
               <SelectTrigger><SelectValue placeholder="Mes servicio" /></SelectTrigger>
+              <SelectContent>
+                {meses.map((m) => (
+                  <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Mes de provision</Label>
+            <Select value={mesProvision} onValueChange={setMesProvision}>
+              <SelectTrigger><SelectValue placeholder="Mes provision" /></SelectTrigger>
               <SelectContent>
                 {meses.map((m) => (
                   <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>

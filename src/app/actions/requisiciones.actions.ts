@@ -26,6 +26,7 @@ const requisicionSchema = z.object({
   importe_me: z.number().optional(),
   motivo_sin_factura: z.string().optional(),
   observaciones_solicitante: z.string().optional(),
+  mes_provision: z.string().optional(),
 })
 
 export async function getRequisiciones(filters?: {
@@ -42,6 +43,7 @@ export async function getRequisiciones(filters?: {
       empresas_paga:empresas!requisiciones_empresa_paga_id_fkey(nombre, codigo),
       proveedores(nombre),
       clasificaciones_gasto(nombre),
+      clasificacion_final:clasificaciones_gasto!requisiciones_clasificacion_final_id_fkey(nombre),
       proyectos(centro_de_costo, nombre),
       perfiles!requisiciones_solicitante_id_fkey(nombre)
     `)
@@ -66,6 +68,7 @@ export async function getRequisicionById(id: string) {
       empresas_paga:empresas!requisiciones_empresa_paga_id_fkey(nombre, codigo),
       proveedores(nombre, rfc, banco, clabe),
       clasificaciones_gasto(nombre),
+      clasificacion_final:clasificaciones_gasto!requisiciones_clasificacion_final_id_fkey(nombre),
       proyectos(centro_de_costo, nombre),
       perfiles!requisiciones_solicitante_id_fkey(nombre, email),
       aprobaciones(id, decision, observaciones, fecha, director:perfiles!aprobaciones_director_id_fkey(nombre)),
@@ -103,6 +106,7 @@ export async function createRequisicion(formData: FormData, enviar: boolean = fa
     importe_me: parseFloat(formData.get('importe_me') as string) || undefined,
     motivo_sin_factura: (formData.get('motivo_sin_factura') as string) || undefined,
     observaciones_solicitante: (formData.get('observaciones_solicitante') as string) || undefined,
+    mes_provision: (formData.get('mes_provision') as string) || undefined,
   }
 
   const parsed = requisicionSchema.safeParse(raw)
