@@ -22,6 +22,8 @@ import { verificarYProcesarSolicitud } from '@/app/actions/sat/verificar-y-proce
 import { generateCSV, downloadCSV } from '@/lib/csv'
 import { useSort } from '@/hooks/useSort'
 import { SortableHeader } from '@/components/SortableHeader'
+import { obtenerAnaliticaSAT, type AnaliticaSAT } from '@/app/actions/sat/obtener-analitica.actions'
+import { BarChart3 } from 'lucide-react'
 
 interface Empresa {
   id: string
@@ -59,6 +61,14 @@ const ESTATUS_CONFIG: Record<string, { label: string; className: string }> = {
   descargando: { label: 'Descargando', className: 'bg-blue-100 text-blue-700 hover:bg-blue-100' },
   completada: { label: 'Completada', className: 'bg-green-100 text-green-700 hover:bg-green-100' },
   error: { label: 'Error', className: 'bg-red-100 text-red-700 hover:bg-red-100' },
+}
+
+const TIPO_COMPROBANTE_LABELS: Record<string, string> = {
+  I: 'Ingreso',
+  E: 'Egreso',
+  T: 'Traslado',
+  N: 'Nomina',
+  P: 'Pago',
 }
 
 const formatMoney = (value: number) =>
@@ -113,6 +123,8 @@ export function SATClient({ empresas }: { empresas: Empresa[] }) {
   const [cfdiConciliado, setCfdiConciliado] = useState('')
 
   const [verificandoId, setVerificandoId] = useState<string | null>(null)
+  const [analitica, setAnalitica] = useState<AnaliticaSAT | null>(null)
+  const [loadingAnalitica, setLoadingAnalitica] = useState(false)
 
   const { sorted: sortedSolicitudes, sortConfig: sortConfigSol, handleSort: handleSortSol } = useSort(solicitudes)
   const { sorted: sortedCfdis, sortConfig: sortConfigCfdi, handleSort: handleSortCfdi } = useSort(cfdis)
@@ -179,6 +191,12 @@ export function SATClient({ empresas }: { empresas: Empresa[] }) {
   useEffect(() => {
     if (selectedEmpresa && selectedPeriodo) {
       cargarKPIs()
+      setLoadingAnalitica(true)
+      obtenerAnaliticaSAT(selectedEmpresa, selectedPeriodo)
+        .then(setAnalitica)
+        .finally(() => setLoadingAnalitica(false))
+    } else {
+      setAnalitica(null)
     }
   }, [selectedEmpresa, selectedPeriodo, cargarKPIs])
 
@@ -689,6 +707,129 @@ export function SATClient({ empresas }: { empresas: Empresa[] }) {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* Section 6: Analitica */}
+      {selectedEmpresa && selectedPeriodo && analitica && !loadingAnalitica && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2" style={{ color: '#1B3A6B' }}>
+              <BarChart3 className="h-5 w-5" />
+              Analitica — {selectedPeriodo}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {analitica.porFormaPago.length === 0 && analitica.porTipoComprobante.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No hay datos de analitica para este periodo. Los campos enriquecidos se llenan con nuevas descargas.</p>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Por forma de pago */}
+                {analitica.porFormaPago.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Por forma de pago</h4>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Forma de pago</TableHead>
+                          <TableHead className="text-right"># CFDIs</TableHead>
+                          <TableHead className="text-right">Total MXN</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {analitica.porFormaPago.map((row) => (
+                          <TableRow key={row.forma_pago}>
+                            <TableCell className="text-sm">{row.forma_pago}</TableCell>
+                            <TableCell className="text-right text-sm">{row.count}</TableCell>
+                            <TableCell className="text-right text-sm font-mono">{formatMoney(row.total_mxn)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+
+                {/* Por tipo de comprobante */}
+                {analitica.porTipoComprobante.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Por tipo de comprobante</h4>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Tipo</TableHead>
+                          <TableHead className="text-right"># CFDIs</TableHead>
+                          <TableHead className="text-right">Total MXN</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {analitica.porTipoComprobante.map((row) => (
+                          <TableRow key={row.tipo_comprobante}>
+                            <TableCell className="text-sm">{TIPO_COMPROBANTE_LABELS[row.tipo_comprobante] || row.tipo_comprobante}</TableCell>
+                            <TableCell className="text-right text-sm">{row.count}</TableCell>
+                            <TableCell className="text-right text-sm font-mono">{formatMoney(row.total_mxn)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+
+                {/* Top proveedores */}
+                {analitica.topProveedores.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Top 10 proveedores (recibidas)</h4>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>RFC</TableHead>
+                          <TableHead>Nombre</TableHead>
+                          <TableHead className="text-right"># CFDIs</TableHead>
+                          <TableHead className="text-right">Total MXN</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {analitica.topProveedores.map((row) => (
+                          <TableRow key={row.rfc}>
+                            <TableCell className="text-xs font-mono">{row.rfc}</TableCell>
+                            <TableCell className="text-sm truncate max-w-[180px]" title={row.nombre}>{row.nombre || '—'}</TableCell>
+                            <TableCell className="text-right text-sm">{row.count}</TableCell>
+                            <TableCell className="text-right text-sm font-mono">{formatMoney(row.total_mxn)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+
+                {/* Top clientes */}
+                {analitica.topClientes.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Top 10 clientes (emitidas)</h4>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>RFC</TableHead>
+                          <TableHead>Nombre</TableHead>
+                          <TableHead className="text-right"># CFDIs</TableHead>
+                          <TableHead className="text-right">Total MXN</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {analitica.topClientes.map((row) => (
+                          <TableRow key={row.rfc}>
+                            <TableCell className="text-xs font-mono">{row.rfc}</TableCell>
+                            <TableCell className="text-sm truncate max-w-[180px]" title={row.nombre}>{row.nombre || '—'}</TableCell>
+                            <TableCell className="text-right text-sm">{row.count}</TableCell>
+                            <TableCell className="text-right text-sm font-mono">{formatMoney(row.total_mxn)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       {/* Duplicate dialog */}

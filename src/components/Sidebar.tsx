@@ -188,7 +188,7 @@ export function Sidebar({ items, userName, userRole }: SidebarProps) {
             <LogOut className="w-4 h-4" />
           </button>
         </div>
-        <p className="mt-2 text-[10px] text-primary-400/60 text-center">v1.2.2</p>
+        <p className="mt-2 text-[10px] text-primary-400/60 text-center">v1.3.0</p>
       </div>
     </div>
   )
