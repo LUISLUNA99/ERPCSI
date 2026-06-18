@@ -18,6 +18,7 @@ import { solicitarDescargaSAT, verificarDuplicado } from '@/app/actions/sat/soli
 import { solicitarDescargaHistorica } from '@/app/actions/sat/solicitar-historico.actions'
 import { obtenerSolicitudes, reintentarSolicitud } from '@/app/actions/sat/obtener-solicitudes.actions'
 import { obtenerCFDIs, obtenerKPIsCFDI } from '@/app/actions/sat/obtener-cfdi.actions'
+import { verificarYProcesarSolicitud } from '@/app/actions/sat/verificar-y-procesar.actions'
 import { generateCSV, downloadCSV } from '@/lib/csv'
 
 interface Empresa {
@@ -108,6 +109,8 @@ export function SATClient({ empresas }: { empresas: Empresa[] }) {
   const [cfdiRfcReceptor, setCfdiRfcReceptor] = useState('')
   const [cfdiEstatus, setCfdiEstatus] = useState('')
   const [cfdiConciliado, setCfdiConciliado] = useState('')
+
+  const [verificandoId, setVerificandoId] = useState<string | null>(null)
 
   const cfdisSection = useRef<HTMLDivElement>(null)
 
@@ -244,6 +247,31 @@ export function SATClient({ empresas }: { empresas: Empresa[] }) {
     else { toast.success('Solicitud reenviada'); cargarSolicitudes() }
   }
 
+  async function handleVerificar(solicitudId: string) {
+    setVerificandoId(solicitudId)
+    try {
+      const result = await verificarYProcesarSolicitud(solicitudId)
+      if (result.estatus === 'completada') {
+        toast.success(`Descarga completada: ${result.cfdisProcesados ?? result.totalCfdi ?? 0} CFDIs procesados`)
+        cargarCFDIs(1)
+        if (selectedPeriodo) cargarKPIs()
+      } else if (result.estatus === 'verificando') {
+        toast.info('El SAT aun esta preparando los paquetes. Tiempo estimado: 1-24 horas.')
+      } else if (result.estatus === 'error') {
+        toast.error(result.error || 'Error al verificar la solicitud')
+      } else if (result.estatus === 'lista') {
+        toast.success('Paquetes listos. Iniciando descarga...')
+      } else {
+        toast.info('Solicitud actualizada')
+      }
+      cargarSolicitudes()
+    } catch {
+      toast.error('Error al consultar el SAT')
+    } finally {
+      setVerificandoId(null)
+    }
+  }
+
   function handleVerCFDIs(sol: SolicitudRow) {
     if (sol.mes_periodo && sol.anio_periodo) setSelectedPeriodo(`${sol.mes_periodo}-${sol.anio_periodo}`)
     if (sol.tipo === 'emitidas') setCfdiTipo('EMITIDA')
@@ -378,8 +406,8 @@ export function SATClient({ empresas }: { empresas: Empresa[] }) {
                   return (
                     <TableRow key={p.value}>
                       <TableCell className="font-medium">{p.label}</TableCell>
-                      <TableCell><EstatusBadgeMini estatus={solEmit?.estatus} /></TableCell>
-                      <TableCell><EstatusBadgeMini estatus={solRecib?.estatus} /></TableCell>
+                      <TableCell><HistoricoCell sol={solEmit} verificandoId={verificandoId} onVerificar={handleVerificar} /></TableCell>
+                      <TableCell><HistoricoCell sol={solRecib} verificandoId={verificandoId} onVerificar={handleVerificar} /></TableCell>
                     </TableRow>
                   )
                 })}
@@ -476,11 +504,36 @@ export function SATClient({ empresas }: { empresas: Empresa[] }) {
                           <TableCell>{formatDuracion(sol.duracion_segundos)}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-1">
+                              {(sol.estatus === 'pendiente' || sol.estatus === 'verificando') && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleVerificar(sol.id)}
+                                  disabled={verificandoId === sol.id}
+                                  className={sol.estatus === 'verificando' ? 'border-blue-300 text-blue-700' : ''}
+                                >
+                                  {verificandoId === sol.id ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Consultando...</> : <><RefreshCw className="h-3 w-3 mr-1" />Verificar</>}
+                                </Button>
+                              )}
+                              {sol.estatus === 'lista' && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleVerificar(sol.id)}
+                                  disabled={verificandoId === sol.id}
+                                  className="border-green-300 text-green-700"
+                                >
+                                  {verificandoId === sol.id ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Descargando...</> : <><Download className="h-3 w-3 mr-1" />Descargar ahora</>}
+                                </Button>
+                              )}
+                              {sol.estatus === 'descargando' && (
+                                <span className="inline-flex items-center text-xs text-blue-600"><Loader2 className="h-3 w-3 mr-1 animate-spin" />En proceso</span>
+                              )}
                               {sol.estatus === 'completada' && (
                                 <Button variant="ghost" size="sm" onClick={() => handleVerCFDIs(sol)} title="Ver CFDIs"><Eye className="h-4 w-4" /></Button>
                               )}
                               {sol.estatus === 'error' && (
-                                <Button variant="ghost" size="sm" onClick={() => handleReintentar(sol.id)} title="Reintentar"><RotateCcw className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="sm" onClick={() => handleReintentar(sol.id)} title="Reintentar" className="text-red-600"><RotateCcw className="h-4 w-4" /></Button>
                               )}
                             </div>
                           </TableCell>
@@ -676,5 +729,30 @@ function EstatusBadgeMini({ estatus }: { estatus?: string }) {
       {estatus === 'verificando' && <Loader2 className="h-3 w-3 mr-1 animate-spin inline" />}
       {cfg.label}
     </Badge>
+  )
+}
+
+function HistoricoCell({ sol, verificandoId, onVerificar }: { sol?: SolicitudRow; verificandoId: string | null; onVerificar: (id: string) => void }) {
+  if (!sol) return <Badge variant="secondary" className="bg-gray-100 text-gray-500 hover:bg-gray-100 text-xs">Sin solicitar</Badge>
+
+  const isVerificando = verificandoId === sol.id
+  const cfg = ESTATUS_CONFIG[sol.estatus] || ESTATUS_CONFIG.pendiente
+
+  return (
+    <div className="flex items-center gap-2">
+      <Badge variant="secondary" className={`${cfg.className} text-xs`}>
+        {(sol.estatus === 'verificando' || sol.estatus === 'descargando') && <Loader2 className="h-3 w-3 mr-1 animate-spin inline" />}
+        {cfg.label}
+      </Badge>
+      {(sol.estatus === 'pendiente' || sol.estatus === 'verificando' || sol.estatus === 'lista') && (
+        <button
+          onClick={() => onVerificar(sol.id)}
+          disabled={isVerificando}
+          className="text-xs text-blue-600 hover:text-blue-800 hover:underline disabled:opacity-50"
+        >
+          {isVerificando ? 'Consultando...' : sol.estatus === 'lista' ? 'Descargar' : 'Verificar'}
+        </button>
+      )}
+    </div>
   )
 }
