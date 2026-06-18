@@ -4,10 +4,12 @@ import { useState } from 'react'
 import { PageHeader } from '@/components/PageHeader'
 import { StatusBadge } from '@/components/StatusBadge'
 import { BulkUpload } from '@/components/BulkUpload'
+import { SortableHeader } from '@/components/SortableHeader'
 import { EmpresaDialog } from './EmpresaDialog'
 import { SATConfigDialog } from './SATConfigDialog'
 import { toggleEmpresa } from '@/app/actions/empresas.actions'
 import { bulkImportEmpresas } from '@/app/actions/bulk.actions'
+import { useSort } from '@/hooks/useSort'
 import {
   Table,
   TableBody,
@@ -36,6 +38,8 @@ export function EmpresasClient({ empresas }: { empresas: Empresa[] }) {
   const [satDialogOpen, setSatDialogOpen] = useState(false)
   const [editingEmpresa, setEditingEmpresa] = useState<Empresa | null>(null)
   const [satEmpresa, setSatEmpresa] = useState<Empresa | null>(null)
+
+  const { sorted, sortConfig, handleSort } = useSort(empresas)
 
   function handleEdit(empresa: Empresa) {
     setEditingEmpresa(empresa)
@@ -86,23 +90,23 @@ export function EmpresasClient({ empresas }: { empresas: Empresa[] }) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Codigo</TableHead>
-              <TableHead>Nombre</TableHead>
-              <TableHead>RFC</TableHead>
+              <SortableHeader label="Codigo" sortKey="codigo" sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label="Nombre" sortKey="nombre" sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label="RFC" sortKey="rfc" sortConfig={sortConfig} onSort={handleSort} />
               <TableHead>SAT</TableHead>
-              <TableHead>Estatus</TableHead>
+              <SortableHeader label="Estatus" sortKey="activa" sortConfig={sortConfig} onSort={handleSort} />
               <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {empresas.length === 0 ? (
+            {sorted.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   No hay empresas registradas
                 </TableCell>
               </TableRow>
             ) : (
-              empresas.map((empresa) => (
+              sorted.map((empresa) => (
                 <TableRow key={empresa.id}>
                   <TableCell className="font-medium">{empresa.codigo}</TableCell>
                   <TableCell>{empresa.nombre}</TableCell>

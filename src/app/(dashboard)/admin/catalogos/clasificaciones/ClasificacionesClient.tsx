@@ -4,9 +4,11 @@ import { useState } from 'react'
 import { PageHeader } from '@/components/PageHeader'
 import { StatusBadge } from '@/components/StatusBadge'
 import { BulkUpload } from '@/components/BulkUpload'
+import { SortableHeader } from '@/components/SortableHeader'
 import { ClasificacionDialog } from './ClasificacionDialog'
 import { toggleClasificacion } from '@/app/actions/clasificaciones.actions'
 import { bulkImportClasificaciones } from '@/app/actions/bulk.actions'
+import { useSort } from '@/hooks/useSort'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Pencil, Power } from 'lucide-react'
@@ -23,6 +25,8 @@ interface Clasificacion {
 export function ClasificacionesClient({ clasificaciones }: { clasificaciones: Clasificacion[] }) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Clasificacion | null>(null)
+
+  const { sorted, sortConfig, handleSort } = useSort(clasificaciones)
 
   async function handleToggle(c: Clasificacion) {
     const result = await toggleClasificacion(c.id, !c.activa)
@@ -52,21 +56,21 @@ export function ClasificacionesClient({ clasificaciones }: { clasificaciones: Cl
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nombre</TableHead>
-              <TableHead>Descripcion</TableHead>
-              <TableHead>Estatus</TableHead>
+              <SortableHeader label="Nombre" sortKey="nombre" sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label="Descripcion" sortKey="descripcion" sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label="Estatus" sortKey="activa" sortConfig={sortConfig} onSort={handleSort} />
               <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {clasificaciones.length === 0 ? (
+            {sorted.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                   No hay clasificaciones registradas
                 </TableCell>
               </TableRow>
             ) : (
-              clasificaciones.map((c) => (
+              sorted.map((c) => (
                 <TableRow key={c.id}>
                   <TableCell className="font-medium">{c.nombre}</TableCell>
                   <TableCell className="text-muted-foreground text-sm">{c.descripcion || '—'}</TableCell>

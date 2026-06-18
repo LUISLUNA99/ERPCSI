@@ -3,8 +3,10 @@
 import { useState } from 'react'
 import { PageHeader } from '@/components/PageHeader'
 import { StatusBadge } from '@/components/StatusBadge'
+import { SortableHeader } from '@/components/SortableHeader'
 import { UsuarioDialog } from './UsuarioDialog'
 import { toggleUsuario } from '@/app/actions/usuarios.actions'
+import { useSort } from '@/hooks/useSort'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -44,6 +46,8 @@ export function UsuariosClient({ usuarios, empresas }: { usuarios: Usuario[]; em
     ? usuarios
     : usuarios.filter((u) => u.rol === filterRol)
 
+  const { sorted, sortConfig, handleSort } = useSort(filtered)
+
   async function handleToggle(u: Usuario) {
     const result = await toggleUsuario(u.id, !u.activo)
     if (result.error) toast.error(result.error)
@@ -75,23 +79,23 @@ export function UsuariosClient({ usuarios, empresas }: { usuarios: Usuario[]; em
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nombre</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Rol</TableHead>
-              <TableHead>Empresa</TableHead>
-              <TableHead>Estatus</TableHead>
+              <SortableHeader label="Nombre" sortKey="nombre" sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label="Email" sortKey="email" sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label="Rol" sortKey="rol" sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label="Empresa" sortKey="empresas.nombre" sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label="Estatus" sortKey="activo" sortConfig={sortConfig} onSort={handleSort} />
               <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.length === 0 ? (
+            {sorted.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   No hay usuarios registrados
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((u) => (
+              sorted.map((u) => (
                 <TableRow key={u.id}>
                   <TableCell className="font-medium">{u.nombre}</TableCell>
                   <TableCell className="text-muted-foreground">{u.email}</TableCell>

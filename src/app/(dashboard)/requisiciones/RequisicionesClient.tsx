@@ -9,6 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { Search } from 'lucide-react'
+import { useSort } from '@/hooks/useSort'
+import { SortableHeader } from '@/components/SortableHeader'
 
 interface Requisicion {
   id: string
@@ -45,7 +47,8 @@ export function RequisicionesClient({ requisiciones, rol, canCreate }: Props) {
     return matchEstatus && matchSearch
   })
 
-  const { totalItems, getPageItems } = usePagination(filtered, 25)
+  const { sorted, sortConfig, handleSort } = useSort(filtered)
+  const { totalItems, getPageItems } = usePagination(sorted, 25)
   const pageItems = getPageItems(currentPage)
 
   // Reset page when filters change
@@ -95,13 +98,13 @@ export function RequisicionesClient({ requisiciones, rol, canCreate }: Props) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Folio</TableHead>
-              <TableHead>Fecha</TableHead>
-              {rol !== 'operario' && <TableHead>Solicitante</TableHead>}
-              <TableHead>Proveedor</TableHead>
-              <TableHead>Concepto</TableHead>
-              <TableHead className="text-right">Importe</TableHead>
-              <TableHead>Estatus</TableHead>
+              <SortableHeader label="Folio" sortKey="folio" sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label="Fecha" sortKey="fecha_solicitud" sortConfig={sortConfig} onSort={handleSort} />
+              {rol !== 'operario' && <SortableHeader label="Solicitante" sortKey="perfiles.nombre" sortConfig={sortConfig} onSort={handleSort} />}
+              <SortableHeader label="Proveedor" sortKey="proveedores.nombre" sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label="Concepto" sortKey="concepto" sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label="Importe" sortKey="importe_total" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+              <SortableHeader label="Estatus" sortKey="estatus" sortConfig={sortConfig} onSort={handleSort} />
             </TableRow>
           </TableHeader>
           <TableBody>

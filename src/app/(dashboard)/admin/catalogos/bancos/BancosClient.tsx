@@ -4,9 +4,11 @@ import { useState } from 'react'
 import { PageHeader } from '@/components/PageHeader'
 import { StatusBadge } from '@/components/StatusBadge'
 import { BulkUpload } from '@/components/BulkUpload'
+import { SortableHeader } from '@/components/SortableHeader'
 import { BancoDialog } from './BancoDialog'
 import { toggleBanco } from '@/app/actions/bancos.actions'
 import { bulkImportBancos } from '@/app/actions/bulk.actions'
+import { useSort } from '@/hooks/useSort'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Pencil, Power } from 'lucide-react'
@@ -32,6 +34,8 @@ interface Empresa {
 export function BancosClient({ bancos, empresas }: { bancos: BancoEmpresa[]; empresas: Empresa[] }) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<BancoEmpresa | null>(null)
+
+  const { sorted, sortConfig, handleSort } = useSort(bancos)
 
   async function handleToggle(b: BancoEmpresa) {
     const result = await toggleBanco(b.id, !b.activo)
@@ -61,24 +65,24 @@ export function BancosClient({ bancos, empresas }: { bancos: BancoEmpresa[]; emp
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Empresa</TableHead>
-              <TableHead>Banco</TableHead>
+              <SortableHeader label="Empresa" sortKey="empresas.nombre" sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label="Banco" sortKey="banco" sortConfig={sortConfig} onSort={handleSort} />
               <TableHead>No. Cuenta</TableHead>
               <TableHead>CLABE</TableHead>
-              <TableHead>Moneda</TableHead>
-              <TableHead>Estatus</TableHead>
+              <SortableHeader label="Moneda" sortKey="moneda" sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label="Estatus" sortKey="activo" sortConfig={sortConfig} onSort={handleSort} />
               <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {bancos.length === 0 ? (
+            {sorted.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   No hay cuentas bancarias registradas
                 </TableCell>
               </TableRow>
             ) : (
-              bancos.map((b) => (
+              sorted.map((b) => (
                 <TableRow key={b.id}>
                   <TableCell className="font-medium">{b.empresas?.codigo} - {b.empresas?.nombre}</TableCell>
                   <TableCell>{b.banco}</TableCell>

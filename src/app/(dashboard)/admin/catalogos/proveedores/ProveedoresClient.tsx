@@ -4,9 +4,11 @@ import { useState } from 'react'
 import { PageHeader } from '@/components/PageHeader'
 import { StatusBadge } from '@/components/StatusBadge'
 import { BulkUpload } from '@/components/BulkUpload'
+import { SortableHeader } from '@/components/SortableHeader'
 import { ProveedorDialog } from './ProveedorDialog'
 import { toggleProveedor } from '@/app/actions/proveedores.actions'
 import { bulkImportProveedores } from '@/app/actions/bulk.actions'
+import { useSort } from '@/hooks/useSort'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
@@ -37,6 +39,8 @@ export function ProveedoresClient({ proveedores }: { proveedores: Proveedor[] })
       p.nombre.toLowerCase().includes(search.toLowerCase()) ||
       (p.rfc && p.rfc.toLowerCase().includes(search.toLowerCase()))
   )
+
+  const { sorted, sortConfig, handleSort } = useSort(filtered)
 
   async function handleToggle(p: Proveedor) {
     const result = await toggleProveedor(p.id, !p.activo)
@@ -78,23 +82,23 @@ export function ProveedoresClient({ proveedores }: { proveedores: Proveedor[] })
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nombre</TableHead>
-              <TableHead>RFC</TableHead>
-              <TableHead>Banco</TableHead>
+              <SortableHeader label="Nombre" sortKey="nombre" sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label="RFC" sortKey="rfc" sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label="Banco" sortKey="banco" sortConfig={sortConfig} onSort={handleSort} />
               <TableHead>Contacto</TableHead>
-              <TableHead>Estatus</TableHead>
+              <SortableHeader label="Estatus" sortKey="activo" sortConfig={sortConfig} onSort={handleSort} />
               <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.length === 0 ? (
+            {sorted.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   {search ? 'Sin resultados para la busqueda' : 'No hay proveedores registrados'}
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((p) => (
+              sorted.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell className="font-medium">{p.nombre}</TableCell>
                   <TableCell className="text-muted-foreground">{p.rfc || '—'}</TableCell>

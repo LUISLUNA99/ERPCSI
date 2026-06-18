@@ -13,6 +13,8 @@ import { Badge } from '@/components/ui/badge'
 import { Search, Download, Activity, AlertTriangle, User, BarChart3 } from 'lucide-react'
 import { getBitacora } from '@/app/actions/auditoria.actions'
 import { generateCSV, downloadCSV } from '@/lib/csv'
+import { useSort } from '@/hooks/useSort'
+import { SortableHeader } from '@/components/SortableHeader'
 
 interface BitacoraEntry {
   id: string
@@ -107,7 +109,9 @@ export function AuditoriaClient({ bitacora: initialBitacora, usuarios }: Props) 
     })
   }, [entries, filterModulo, filterUsuario, filterResultado, search])
 
-  const { totalItems, getPageItems } = usePagination(filtered, 50)
+  const { sorted, sortConfig, handleSort } = useSort(filtered)
+
+  const { totalItems, getPageItems } = usePagination(sorted, 50)
   const pageItems = getPageItems(currentPage)
 
   // KPIs
@@ -294,13 +298,13 @@ export function AuditoriaClient({ bitacora: initialBitacora, usuarios }: Props) 
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[160px]">Fecha/hora</TableHead>
-              <TableHead>Usuario</TableHead>
-              <TableHead className="w-[90px]">Rol</TableHead>
-              <TableHead className="w-[120px]">Modulo</TableHead>
-              <TableHead className="w-[120px]">Accion</TableHead>
-              <TableHead>Descripcion</TableHead>
-              <TableHead className="w-[90px]">Resultado</TableHead>
+              <SortableHeader label="Fecha/hora" sortKey="created_at" sortConfig={sortConfig} onSort={handleSort} className="w-[160px]" />
+              <SortableHeader label="Usuario" sortKey="usuario_nombre" sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label="Rol" sortKey="usuario_rol" sortConfig={sortConfig} onSort={handleSort} className="w-[90px]" />
+              <SortableHeader label="Modulo" sortKey="modulo" sortConfig={sortConfig} onSort={handleSort} className="w-[120px]" />
+              <SortableHeader label="Accion" sortKey="accion" sortConfig={sortConfig} onSort={handleSort} className="w-[120px]" />
+              <SortableHeader label="Descripcion" sortKey="descripcion" sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label="Resultado" sortKey="resultado" sortConfig={sortConfig} onSort={handleSort} className="w-[90px]" />
             </TableRow>
           </TableHeader>
           <TableBody>

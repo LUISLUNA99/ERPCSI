@@ -4,9 +4,11 @@ import { useState } from 'react'
 import { PageHeader } from '@/components/PageHeader'
 import { StatusBadge } from '@/components/StatusBadge'
 import { BulkUpload } from '@/components/BulkUpload'
+import { SortableHeader } from '@/components/SortableHeader'
 import { ProyectoDialog } from './ProyectoDialog'
 import { toggleProyecto } from '@/app/actions/proyectos.actions'
 import { bulkImportProyectos } from '@/app/actions/bulk.actions'
+import { useSort } from '@/hooks/useSort'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -43,6 +45,8 @@ export function ProyectosClient({ proyectos, empresas }: { proyectos: Proyecto[]
       p.empresas?.nombre.toLowerCase().includes(search.toLowerCase())
   )
 
+  const { sorted, sortConfig, handleSort } = useSort(filtered)
+
   async function handleToggle(p: Proyecto) {
     const result = await toggleProyecto(p.id, !p.activo)
     if (result.error) toast.error(result.error)
@@ -78,23 +82,23 @@ export function ProyectosClient({ proyectos, empresas }: { proyectos: Proyecto[]
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Centro de Costo</TableHead>
-              <TableHead>Empresa</TableHead>
-              <TableHead>Cliente</TableHead>
-              <TableHead>Nombre</TableHead>
-              <TableHead>Estatus</TableHead>
+              <SortableHeader label="Centro de Costo" sortKey="centro_de_costo" sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label="Empresa" sortKey="empresas.nombre" sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label="Cliente" sortKey="clientes.nombre" sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label="Nombre" sortKey="nombre" sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label="Estatus" sortKey="activo" sortConfig={sortConfig} onSort={handleSort} />
               <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.length === 0 ? (
+            {sorted.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   {search ? 'Sin resultados' : 'No hay proyectos registrados'}
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((p) => (
+              sorted.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell className="font-mono font-medium">{p.centro_de_costo}</TableCell>
                   <TableCell>{p.empresas?.codigo} - {p.empresas?.nombre}</TableCell>
