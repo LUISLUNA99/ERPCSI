@@ -602,3 +602,26 @@
 - [ ] Configurar RESEND_API_KEY de produccion
 - [ ] Configurar CRON_SECRET de produccion
 - [ ] Verificar que .env.local no se suba al repositorio
+
+---
+
+## ÉPICA 7: Integracion SAT
+
+### HU-038 · Descarga masiva de CFDIs del SAT
+**Como** administrador del sistema
+**Quiero** descargar automaticamente los CFDIs emitidos y recibidos desde el SAT
+**Para** tener la informacion fiscal actualizada para conciliacion
+
+**Criterios de aceptacion:**
+- [x] Servicio de solicitud de descarga al SAT (`solicitarDescarga`)
+- [x] Servicio de verificacion de solicitud (`verificarSolicitud`)
+- [x] Procesamiento de paquetes ZIP con XMLs (`procesarPaquetes`)
+- [x] Parseo de CFDI XML: UUID, RFC emisor/receptor, subtotal, IVA, total
+- [x] Upsert a tabla `cfdi_sat` por UUID (sin duplicados)
+- [x] Reintentos (3 intentos con 5s delay) en verificacion y descarga
+- [x] Tabla `sat_solicitudes` para tracking de solicitudes
+- [x] Cron job cada 30 minutos para procesar solicitudes pendientes
+- [x] API Route protegida con CRON_SECRET
+- [x] Registro en bitacora de auditoria
+- [x] Soporte para CFDIs emitidas y recibidas
+- [x] Soporte para formato XML y metadata
