@@ -3,9 +3,11 @@
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { marcarLeida, marcarTodasLeidas } from '@/app/actions/notificaciones.actions'
-import { Bell, CheckCheck, FileText, CheckCircle, XCircle, CreditCard, AlertTriangle } from 'lucide-react'
+import { Bell, CheckCheck, FileText, CheckCircle, XCircle, CreditCard, AlertTriangle, ArrowUpDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useSort, type SortDirection } from '@/hooks/useSort'
 
 interface Notificacion {
   id: string
@@ -28,6 +30,7 @@ const TIPO_ICONS: Record<string, typeof Bell> = {
 export function NotificacionesClient({ notificaciones }: { notificaciones: Notificacion[] }) {
   const router = useRouter()
   const noLeidas = notificaciones.filter((n) => !n.leida).length
+  const { sorted, sortConfig, handleSort } = useSort(notificaciones, 'created_at', 'desc')
 
   async function handleClick(n: Notificacion) {
     if (!n.leida) await marcarLeida(n.id)
@@ -55,6 +58,28 @@ export function NotificacionesClient({ notificaciones }: { notificaciones: Notif
         )}
       </div>
 
+      {/* Ordenar */}
+      {notificaciones.length > 0 && (
+        <div className="flex items-center gap-2">
+          <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">Ordenar por:</span>
+          <Select
+            value={sortConfig?.key || 'created_at'}
+            onValueChange={(key) => handleSort(key)}
+          >
+            <SelectTrigger className="w-40 h-8 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="created_at">Fecha</SelectItem>
+              <SelectItem value="tipo">Tipo</SelectItem>
+              <SelectItem value="titulo">Titulo</SelectItem>
+              <SelectItem value="leida">Estado</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       {notificaciones.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
@@ -65,7 +90,7 @@ export function NotificacionesClient({ notificaciones }: { notificaciones: Notif
         </Card>
       ) : (
         <div className="space-y-2">
-          {notificaciones.map((n) => {
+          {sorted.map((n) => {
             const Icon = TIPO_ICONS[n.tipo] || Bell
             return (
               <Card

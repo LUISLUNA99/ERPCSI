@@ -191,7 +191,7 @@ export default function LoginPage() {
       {/* Footer */}
       <div className="absolute bottom-6 text-center text-white/60 text-xs">
         <p>Grupo CSI &copy; {new Date().getFullYear()}</p>
-        <p className="mt-1 text-white/30">v1.2.1</p>
+        <p className="mt-1 text-white/30">v1.2.2</p>
       </div>
     </div>
   )
