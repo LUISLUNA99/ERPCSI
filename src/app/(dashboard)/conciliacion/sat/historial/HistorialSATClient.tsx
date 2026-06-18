@@ -11,6 +11,8 @@ import { obtenerHistorial } from '@/app/actions/sat/obtener-historial.actions'
 import { verificarYProcesarSolicitud } from '@/app/actions/sat/verificar-y-procesar.actions'
 import { reintentarSolicitud } from '@/app/actions/sat/obtener-solicitudes.actions'
 import { FileCheck, Clock, Building2, Calendar, Download, FileText, RefreshCw, AlertCircle, Loader2, RotateCcw } from 'lucide-react'
+import { useSort } from '@/hooks/useSort'
+import { SortableHeader } from '@/components/SortableHeader'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 
@@ -137,6 +139,8 @@ export function HistorialSATClient({
   const [selectedSolicitud, setSelectedSolicitud] = useState<SolicitudHistorial | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
   const [verificandoId, setVerificandoId] = useState<string | null>(null)
+
+  const { sorted, sortConfig, handleSort } = useSort(historial)
 
   // Filtros
   const [empresaId, setEmpresaId] = useState<string>('')
@@ -404,21 +408,21 @@ export function HistorialSATClient({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Empresa</TableHead>
-                    <TableHead>Periodo</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead className="text-right">CFDIs</TableHead>
-                    <TableHead className="text-right">Paquetes</TableHead>
-                    <TableHead>Estatus</TableHead>
-                    <TableHead>Solicitado por</TableHead>
-                    <TableHead>Fecha solicitud</TableHead>
-                    <TableHead>Fecha completada</TableHead>
+                    <SortableHeader label="Empresa" sortKey="empresas.nombre" sortConfig={sortConfig} onSort={handleSort} />
+                    <SortableHeader label="Periodo" sortKey="anio_periodo" sortConfig={sortConfig} onSort={handleSort} />
+                    <SortableHeader label="Tipo" sortKey="tipo" sortConfig={sortConfig} onSort={handleSort} />
+                    <SortableHeader label="CFDIs" sortKey="total_cfdi" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                    <SortableHeader label="Paquetes" sortKey="total_paquetes" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                    <SortableHeader label="Estatus" sortKey="estatus" sortConfig={sortConfig} onSort={handleSort} />
+                    <SortableHeader label="Solicitado por" sortKey="perfiles.nombre" sortConfig={sortConfig} onSort={handleSort} />
+                    <SortableHeader label="Fecha solicitud" sortKey="created_at" sortConfig={sortConfig} onSort={handleSort} />
+                    <SortableHeader label="Fecha completada" sortKey="fecha_completada" sortConfig={sortConfig} onSort={handleSort} />
                     <TableHead>Duracion</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {historial.map((solicitud) => {
+                  {sorted.map((solicitud) => {
                     const estatusCfg = ESTATUS_CONFIG[solicitud.estatus] || {
                       label: solicitud.estatus,
                       className: 'bg-gray-100 text-gray-700',

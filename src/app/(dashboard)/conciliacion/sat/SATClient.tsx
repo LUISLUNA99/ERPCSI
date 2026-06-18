@@ -20,6 +20,8 @@ import { obtenerSolicitudes, reintentarSolicitud } from '@/app/actions/sat/obten
 import { obtenerCFDIs, obtenerKPIsCFDI } from '@/app/actions/sat/obtener-cfdi.actions'
 import { verificarYProcesarSolicitud } from '@/app/actions/sat/verificar-y-procesar.actions'
 import { generateCSV, downloadCSV } from '@/lib/csv'
+import { useSort } from '@/hooks/useSort'
+import { SortableHeader } from '@/components/SortableHeader'
 
 interface Empresa {
   id: string
@@ -111,6 +113,9 @@ export function SATClient({ empresas }: { empresas: Empresa[] }) {
   const [cfdiConciliado, setCfdiConciliado] = useState('')
 
   const [verificandoId, setVerificandoId] = useState<string | null>(null)
+
+  const { sorted: sortedSolicitudes, sortConfig: sortConfigSol, handleSort: handleSortSol } = useSort(solicitudes)
+  const { sorted: sortedCfdis, sortConfig: sortConfigCfdi, handleSort: handleSortCfdi } = useSort(cfdis)
 
   const cfdisSection = useRef<HTMLDivElement>(null)
 
@@ -464,20 +469,20 @@ export function SATClient({ empresas }: { empresas: Empresa[] }) {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Periodo</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Formato</TableHead>
-                      <TableHead className="text-right">CFDIs</TableHead>
-                      <TableHead className="text-right">Paquetes</TableHead>
-                      <TableHead>Estatus</TableHead>
-                      <TableHead>Solicitado por</TableHead>
-                      <TableHead>Fecha</TableHead>
+                      <SortableHeader label="Periodo" sortKey="anio_periodo" sortConfig={sortConfigSol} onSort={handleSortSol} />
+                      <SortableHeader label="Tipo" sortKey="tipo" sortConfig={sortConfigSol} onSort={handleSortSol} />
+                      <SortableHeader label="Formato" sortKey="formato" sortConfig={sortConfigSol} onSort={handleSortSol} />
+                      <SortableHeader label="CFDIs" sortKey="total_cfdi" sortConfig={sortConfigSol} onSort={handleSortSol} className="text-right" />
+                      <SortableHeader label="Paquetes" sortKey="total_paquetes" sortConfig={sortConfigSol} onSort={handleSortSol} className="text-right" />
+                      <SortableHeader label="Estatus" sortKey="estatus" sortConfig={sortConfigSol} onSort={handleSortSol} />
+                      <SortableHeader label="Solicitado por" sortKey="perfiles.nombre" sortConfig={sortConfigSol} onSort={handleSortSol} />
+                      <SortableHeader label="Fecha" sortKey="created_at" sortConfig={sortConfigSol} onSort={handleSortSol} />
                       <TableHead>Duracion</TableHead>
                       <TableHead className="text-right">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {solicitudes.map((sol: SolicitudRow) => {
+                    {sortedSolicitudes.map((sol: SolicitudRow) => {
                       const cfg = ESTATUS_CONFIG[sol.estatus] || ESTATUS_CONFIG.pendiente
                       return (
                         <TableRow key={sol.id}>
@@ -617,20 +622,20 @@ export function SATClient({ empresas }: { empresas: Empresa[] }) {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>UUID</TableHead>
-                          <TableHead>Tipo</TableHead>
-                          <TableHead>Emisor</TableHead>
-                          <TableHead>Receptor</TableHead>
-                          <TableHead>Fecha</TableHead>
-                          <TableHead className="text-right">Subtotal</TableHead>
-                          <TableHead className="text-right">IVA</TableHead>
-                          <TableHead className="text-right">Total</TableHead>
-                          <TableHead>Estatus</TableHead>
-                          <TableHead>Conciliado</TableHead>
+                          <SortableHeader label="UUID" sortKey="uuid" sortConfig={sortConfigCfdi} onSort={handleSortCfdi} />
+                          <SortableHeader label="Tipo" sortKey="tipo" sortConfig={sortConfigCfdi} onSort={handleSortCfdi} />
+                          <SortableHeader label="Emisor" sortKey="rfc_emisor" sortConfig={sortConfigCfdi} onSort={handleSortCfdi} />
+                          <SortableHeader label="Receptor" sortKey="rfc_receptor" sortConfig={sortConfigCfdi} onSort={handleSortCfdi} />
+                          <SortableHeader label="Fecha" sortKey="fecha_emision" sortConfig={sortConfigCfdi} onSort={handleSortCfdi} />
+                          <SortableHeader label="Subtotal" sortKey="subtotal" sortConfig={sortConfigCfdi} onSort={handleSortCfdi} className="text-right" />
+                          <SortableHeader label="IVA" sortKey="iva" sortConfig={sortConfigCfdi} onSort={handleSortCfdi} className="text-right" />
+                          <SortableHeader label="Total" sortKey="total" sortConfig={sortConfigCfdi} onSort={handleSortCfdi} className="text-right" />
+                          <SortableHeader label="Estatus" sortKey="estatus_sat" sortConfig={sortConfigCfdi} onSort={handleSortCfdi} />
+                          <SortableHeader label="Conciliado" sortKey="conciliado" sortConfig={sortConfigCfdi} onSort={handleSortCfdi} />
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {cfdis.map((cfdi: CFDIRow) => (
+                        {sortedCfdis.map((cfdi: CFDIRow) => (
                           <TableRow key={cfdi.id} className={cfdi.estatus_sat === 'Cancelado' ? 'bg-red-50' : ''}>
                             <TableCell>
                               <span className="font-mono text-xs" title={cfdi.uuid}>{cfdi.uuid?.substring(0, 8)}...</span>
