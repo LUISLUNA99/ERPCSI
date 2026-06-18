@@ -15,6 +15,7 @@ import {
   DownloadType,
   RequestType,
   ServiceType,
+  DocumentStatus,
 } from '@nodecfdi/sat-ws-descarga-masiva'
 
 interface SolicitudParams {
@@ -98,12 +99,18 @@ export async function solicitarDescarga(params: SolicitudParams): Promise<{ id: 
       ? new RequestType('xml')
       : new RequestType('metadata')
 
-    const queryParams = QueryParameters.create(
+    let queryParams = QueryParameters.create(
       period,
       downloadType,
       requestType,
       new ServiceType('cfdi'),
     )
+
+    // SAT v1.5: recibidas con estado 'Todos' causa error 301
+    // Forzar filtro 'active' (Vigentes) para recibidas
+    if (params.tipo === 'recibidas') {
+      queryParams = queryParams.withDocumentStatus(new DocumentStatus('active'))
+    }
 
     // Submit query to SAT
     const queryResult = await service.query(queryParams)

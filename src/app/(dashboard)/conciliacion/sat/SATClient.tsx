@@ -346,6 +346,10 @@ export function SATClient({ empresas }: { empresas: Empresa[] }) {
                 Solicitar descarga
               </Button>
             </div>
+            <div className="mt-3 flex items-start gap-2 text-sm text-gray-500 bg-amber-50 border border-amber-200 p-3 rounded-lg">
+              <Info className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+              <span>Las facturas recibidas solo incluyen comprobantes vigentes (limitacion del SAT). Para consultar canceladas usa el portal del SAT directamente.</span>
+            </div>
           </CardContent>
         </Card>
       )}
