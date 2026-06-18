@@ -1,5 +1,31 @@
 # BACKLOG — ERP CSI · Grupo CSI
 
+> Ultima actualizacion: 2026-06-17
+
+## Resumen de avance
+
+| Fase | Epica | Estado | HUs |
+|------|-------|--------|-----|
+| 1 | Autenticacion y Roles | COMPLETADA | HU-001 a HU-004 |
+| 1 | Catalogos (Admin) | COMPLETADA | HU-005 a HU-011 |
+| 1 | Requisiciones (CxP) | COMPLETADA | HU-012 a HU-017 |
+| 1 | Aprobaciones | COMPLETADA | HU-018 a HU-020 |
+| 1 | Pagos | COMPLETADA | HU-021 a HU-023 |
+| 1 | Facturas y Alertas | COMPLETADA | HU-024 a HU-027 |
+| 1 | Notificaciones y Reportes | COMPLETADA | HU-028 a HU-031 |
+| 1 | Carga masiva CSV | COMPLETADA | HU-032 a HU-034 |
+| - | Pre-produccion | PENDIENTE | HU-035 |
+| 3 | Auditoria | COMPLETADA | HU-036 |
+| 3 | Configuracion SAT | COMPLETADA | HU-037 |
+| 3 | SAT Descarga Masiva + UI | COMPLETADA | HU-038, HU-038b |
+| 2 | Conciliacion Bancaria | PENDIENTE | Por definir |
+
+### Proximos pasos
+1. Testing E2E del flujo SAT (solicitud -> verificacion -> descarga -> CFDIs)
+2. Configurar env vars en Vercel (SMTP, SAT_ENCRYPTION_KEY)
+3. HU-035: Cambio de contrasenas pre-produccion
+4. Fase 2: Conciliacion bancaria (parsers, estados de cuenta, matching)
+
 ---
 
 ## ÉPICA 1: Autenticación y Roles
