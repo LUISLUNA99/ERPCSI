@@ -472,6 +472,7 @@
 | 🟢 Could | HU-025 | Sprint 4 | COMPLETADO |
 | 🔴 Must | HU-030, HU-031, HU-032, HU-033, HU-034, HU-035 | Sprint 5 | EN PROGRESO |
 | 🔴 Must | HU-036 | Sprint 6 | COMPLETADO |
+| 🔴 Must | HU-037 | Sprint 6 | COMPLETADO |
 | ⬜ Fase 2 | HU-026, HU-027 | Fase 2 | PENDIENTE |
 | ⬜ Fase 3 | HU-028, HU-029 | Fase 3 | PENDIENTE |
 
@@ -565,6 +566,27 @@
 - [x] Filtros: rango de fechas, usuario, modulo, accion, resultado
 - [x] Busqueda por descripcion o entidad
 - [x] Exportar a CSV
+- [x] Solo accesible para rol admin
+
+---
+
+### HU-037 · Configuracion SAT en catalogo de empresas
+**Como** administrador
+**Quiero** configurar la e.firma (certificado y clave privada SAT) de cada empresa
+**Para** preparar la integracion con el SAT en fases futuras
+
+**Criterios de aceptacion:**
+- [x] Columnas SAT en tabla empresas (sat_cert_url, sat_key_url, sat_password_encrypted, sat_configurado)
+- [x] Bucket privado 'sat-certs' en Supabase Storage con RLS solo admin
+- [x] Campo RFC con validacion de formato mexicano
+- [x] Upload de archivo .cer y .key al bucket privado
+- [x] Contrasena encriptada con AES-256-GCM antes de guardar
+- [x] Badge "SAT Configurado" / "SAT Pendiente" en tabla de empresas
+- [x] Dialog separado para configuracion SAT con icono Shield
+- [x] Archivos no descargables, solo reemplazables
+- [x] Toggle mostrar/ocultar contrasena
+- [x] Aviso de confidencialidad
+- [x] Registro en bitacora de auditoria
 - [x] Solo accesible para rol admin
 
 ---
