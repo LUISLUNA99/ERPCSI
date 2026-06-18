@@ -252,10 +252,11 @@ export async function bulkImportProyectos(rows: Record<string, string>[]): Promi
   const supabase = await createClient()
   const result: BulkResult = { inserted: 0, updated: 0, errors: [] }
 
-  // Cache de empresas y clientes
+  // Cache de empresas
   const { data: empresas } = await supabase.from('empresas').select('id, codigo')
   const empresaMap = new Map((empresas || []).map((e) => [e.codigo.toLowerCase(), e.id]))
 
+  // Cache de clientes (se actualiza cuando se crean nuevos)
   const { data: clientes } = await supabase.from('clientes').select('id, codigo, empresa_id')
   const clienteMap = new Map(
     (clientes || []).map((c) => [`${c.empresa_id}-${c.codigo.toLowerCase()}`, c.id])
@@ -270,6 +271,7 @@ export async function bulkImportProyectos(rows: Record<string, string>[]): Promi
     const centro_de_costo = row['centro_de_costo']?.trim()
     const empresa_codigo = row['empresa_codigo']?.trim()
     const cliente_codigo = row['cliente_codigo']?.trim()
+    const cliente_nombre = row['cliente_nombre']?.trim() || ''
     const nombre = row['nombre']?.trim()
     const descripcion = row['descripcion']?.trim() || null
 
@@ -297,10 +299,41 @@ export async function bulkImportProyectos(rows: Record<string, string>[]): Promi
       continue
     }
 
-    const clienteId = clienteMap.get(`${empresaId}-${cliente_codigo.toLowerCase()}`)
+    // Auto-crear cliente si no existe
+    const clienteKey = `${empresaId}-${cliente_codigo.toLowerCase()}`
+    let clienteId = clienteMap.get(clienteKey)
     if (!clienteId) {
-      result.errors.push(`Fila ${lineNum}: No se encontro el cliente "${cliente_codigo}" para la empresa "${empresa_codigo}"`)
-      continue
+      const clienteNombre = cliente_nombre || `Cliente ${cliente_codigo}`
+      const { data: nuevoCliente, error: clienteError } = await supabase
+        .from('clientes')
+        .insert({ empresa_id: empresaId, codigo: cliente_codigo, nombre: clienteNombre })
+        .select('id')
+        .single()
+
+      if (clienteError) {
+        if (clienteError.code === '23505') {
+          // Ya existe, obtenerlo
+          const { data: existente } = await supabase
+            .from('clientes')
+            .select('id')
+            .eq('empresa_id', empresaId)
+            .eq('codigo', cliente_codigo)
+            .single()
+          if (existente) {
+            clienteId = existente.id
+            clienteMap.set(clienteKey, clienteId)
+          } else {
+            result.errors.push(`Fila ${lineNum}: Error al obtener cliente "${cliente_codigo}"`)
+            continue
+          }
+        } else {
+          result.errors.push(`Fila ${lineNum}: Error al crear cliente "${cliente_codigo}" - ${clienteError.message}`)
+          continue
+        }
+      } else {
+        clienteId = nuevoCliente.id
+        clienteMap.set(clienteKey, clienteId)
+      }
     }
 
     // Check if CC already exists

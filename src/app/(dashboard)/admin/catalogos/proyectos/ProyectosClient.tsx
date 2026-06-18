@@ -66,8 +66,8 @@ export function ProyectosClient({ proyectos, empresas }: { proyectos: Proyecto[]
         <BulkUpload
           config={{
             templateName: 'centros-de-costo',
-            headers: ['centro_de_costo', 'empresa_codigo', 'cliente_codigo', 'nombre', 'descripcion'],
-            sampleRows: [['50-01-01', '50', '01', 'Gestion Buenher', 'Proyecto de gestion'], ['70-01-02', '70', '01', 'Desarrollo Web', 'Proyecto desarrollo']],
+            headers: ['centro_de_costo', 'empresa_codigo', 'cliente_codigo', 'cliente_nombre', 'nombre', 'descripcion'],
+            sampleRows: [['50-01-01', '50', '01', 'Buenher', 'Gestion Buenher', 'Proyecto de gestion'], ['70-01-02', '70', '01', 'Cliente Principal', 'Desarrollo Web', 'Proyecto desarrollo']],
             requiredFields: ['centro_de_costo', 'empresa_codigo', 'cliente_codigo', 'nombre'],
             onUpload: bulkImportProyectos,
           }}
