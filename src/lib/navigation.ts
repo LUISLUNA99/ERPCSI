@@ -93,6 +93,12 @@ export const navigation: NavItemSerializable[] = [
         iconName: 'Users',
         roles: ['admin'],
       },
+      {
+        label: 'Auditoria',
+        href: '/admin/auditoria',
+        iconName: 'Shield',
+        roles: ['admin'],
+      },
     ],
   },
 ]

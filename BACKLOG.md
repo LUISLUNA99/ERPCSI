@@ -471,6 +471,7 @@
 | 🟡 Should | HU-023, HU-024 | Sprint 4 | COMPLETADO |
 | 🟢 Could | HU-025 | Sprint 4 | COMPLETADO |
 | 🔴 Must | HU-030, HU-031, HU-032, HU-033, HU-034, HU-035 | Sprint 5 | EN PROGRESO |
+| 🔴 Must | HU-036 | Sprint 6 | COMPLETADO |
 | ⬜ Fase 2 | HU-026, HU-027 | Fase 2 | PENDIENTE |
 | ⬜ Fase 3 | HU-028, HU-029 | Fase 3 | PENDIENTE |
 
@@ -546,6 +547,25 @@
 - [ ] Grafica de linea: requisiciones por mes (ultimos 6 meses)
 - [ ] Grafica de dona: distribucion por clasificacion de gasto
 - [ ] Filtro por periodo
+
+---
+
+### HU-036 · Bitacora de auditoria (Admin)
+**Como** administrador
+**Quiero** ver un registro completo de todas las acciones realizadas en el sistema
+**Para** tener trazabilidad y control sobre la operacion
+
+**Criterios de aceptacion:**
+- [x] Tabla `bitacora` en base de datos con indices y RLS
+- [x] Servicio reutilizable `registrarAccion()` en `src/lib/auditoria.ts`
+- [x] Registro de acciones en todas las server actions: requisiciones, aprobaciones, pagos, facturas, catalogos, usuarios, cargas masivas
+- [x] Pantalla `/admin/auditoria` con tabla, filtros, paginacion y exportacion
+- [x] KPIs: acciones hoy, fallidas, usuario mas activo, modulo mas activo
+- [x] Drawer lateral con detalle completo incluyendo datos anteriores vs nuevos
+- [x] Filtros: rango de fechas, usuario, modulo, accion, resultado
+- [x] Busqueda por descripcion o entidad
+- [x] Exportar a CSV
+- [x] Solo accesible para rol admin
 
 ---
 

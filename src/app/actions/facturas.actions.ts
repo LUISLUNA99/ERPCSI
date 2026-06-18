@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { uploadFactura } from '@/lib/supabase/storage'
+import { registrarAccion } from '@/lib/auditoria'
 
 export async function getRequisicionesSinFactura() {
   const supabase = await createClient()
@@ -93,6 +94,16 @@ export async function subirFactura(requisicionId: string, formData: FormData) {
     estatus_anterior: 'PAGADO',
     estatus_nuevo: 'COMPROBADO',
     comentario: `Factura ${numeroFactura} registrada`,
+  })
+
+  await registrarAccion({
+    accion: 'subir_factura',
+    modulo: 'facturas',
+    descripcion: `Factura ${numeroFactura} registrada para solicitud ${req.folio}`,
+    entidadTipo: 'requisicion',
+    entidadId: requisicionId,
+    entidadDescripcion: req.folio,
+    datosNuevos: { numeroFactura, facturaUrl },
   })
 
   revalidatePath('/facturas')

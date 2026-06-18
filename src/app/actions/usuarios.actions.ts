@@ -3,6 +3,7 @@
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { registrarAccion } from '@/lib/auditoria'
 
 const createUserSchema = z.object({
   email: z.string().email('Email invalido'),
@@ -70,6 +71,7 @@ export async function createUsuario(formData: FormData) {
     if (perfilError) return { error: 'Usuario creado pero error al crear perfil: ' + perfilError.message }
 
     revalidatePath('/admin/usuarios')
+    await registrarAccion({ accion: 'crear', modulo: 'usuarios', descripcion: `Usuario ${parsed.data.nombre} (${parsed.data.email}) creado con rol ${parsed.data.rol}`, entidadTipo: 'usuario', entidadDescripcion: parsed.data.email, datosNuevos: { nombre: parsed.data.nombre, email: parsed.data.email, rol: parsed.data.rol } })
     return { success: true }
   } catch {
     return { error: 'Error de conexion al crear usuario' }
@@ -98,6 +100,7 @@ export async function updateUsuario(id: string, formData: FormData) {
   if (error) return { error: 'Error al actualizar el usuario' }
 
   revalidatePath('/admin/usuarios')
+  await registrarAccion({ accion: 'editar', modulo: 'usuarios', descripcion: `Usuario actualizado`, entidadTipo: 'usuario', entidadId: id })
   return { success: true }
 }
 
@@ -107,5 +110,6 @@ export async function toggleUsuario(id: string, activo: boolean) {
   if (error) return { error: 'Error al actualizar el estatus' }
 
   revalidatePath('/admin/usuarios')
+  await registrarAccion({ accion: activo ? 'activar' : 'desactivar', modulo: 'usuarios', descripcion: `Usuario ${activo ? 'activado' : 'desactivado'}`, entidadTipo: 'usuario', entidadId: id })
   return { success: true }
 }

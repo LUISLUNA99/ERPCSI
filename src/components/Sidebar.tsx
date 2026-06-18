@@ -8,7 +8,7 @@ import { type NavItemSerializable } from '@/lib/navigation'
 import {
   Building2, ChevronDown, LogOut, Menu, X,
   LayoutDashboard, FileText, CheckCircle, CreditCard, Receipt,
-  Settings, FolderKanban, Users, Tags, Landmark, BarChart3, Bell,
+  Settings, FolderKanban, Users, Tags, Landmark, BarChart3, Bell, Shield,
   type LucideIcon,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -28,6 +28,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Landmark,
   BarChart3,
   Bell,
+  Shield,
 }
 
 interface SidebarProps {

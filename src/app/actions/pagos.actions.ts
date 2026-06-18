@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { uploadComprobante } from '@/lib/supabase/storage'
 import { sendEmail } from '@/lib/email/send'
 import { emailPagoEjecutado } from '@/lib/email/templates'
+import { registrarAccion } from '@/lib/auditoria'
 
 export async function getRequisicionesPorPagar() {
   const supabase = await createClient()
@@ -71,6 +72,16 @@ export async function programarPago(requisicionId: string, formData: FormData) {
     titulo: 'Pago programado',
     mensaje: `El pago de tu solicitud de compra ${req.folio} ha sido programado para el ${fechaProgramada}.`,
     requisicion_id: requisicionId,
+  })
+
+  await registrarAccion({
+    accion: 'programar_pago',
+    modulo: 'pagos',
+    descripcion: `Pago programado para solicitud ${req.folio} el ${fechaProgramada}`,
+    entidadTipo: 'requisicion',
+    entidadId: requisicionId,
+    entidadDescripcion: req.folio,
+    datosNuevos: { bancoEmpresaId, fechaProgramada },
   })
 
   revalidatePath('/pagos')
@@ -173,6 +184,16 @@ export async function ejecutarPago(requisicionId: string, formData: FormData) {
     const emailData = emailPagoEjecutado(req.folio, requisicionId, folioBancario)
     sendEmail(solicitante.email, emailData.subject, emailData.html).catch(console.error)
   }
+
+  await registrarAccion({
+    accion: 'ejecutar_pago',
+    modulo: 'pagos',
+    descripcion: `Pago ejecutado para solicitud ${req.folio}. Folio bancario: ${folioBancario}`,
+    entidadTipo: 'requisicion',
+    entidadId: requisicionId,
+    entidadDescripcion: req.folio,
+    datosNuevos: { fechaPago, folioBancario, tipoCambioReal, importeRealMxn },
+  })
 
   revalidatePath('/pagos')
   revalidatePath('/requisiciones')

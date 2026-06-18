@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { registrarAccion } from '@/lib/auditoria'
 
 const proveedorSchema = z.object({
   nombre: z.string().min(1, 'El nombre es obligatorio'),
@@ -42,6 +43,7 @@ export async function createProveedor(formData: FormData) {
   if (error) return { error: 'Error al crear el proveedor' }
 
   revalidatePath('/admin/catalogos/proveedores')
+  await registrarAccion({ accion: 'crear', modulo: 'catalogos', descripcion: `Proveedor ${parsed.data.nombre} creado`, entidadTipo: 'proveedor', entidadDescripcion: parsed.data.nombre })
   return { success: true }
 }
 
@@ -66,6 +68,7 @@ export async function updateProveedor(id: string, formData: FormData) {
   if (error) return { error: 'Error al actualizar el proveedor' }
 
   revalidatePath('/admin/catalogos/proveedores')
+  await registrarAccion({ accion: 'editar', modulo: 'catalogos', descripcion: `Proveedor ${parsed.data.nombre} actualizado`, entidadTipo: 'proveedor', entidadId: id, entidadDescripcion: parsed.data.nombre })
   return { success: true }
 }
 
@@ -75,5 +78,6 @@ export async function toggleProveedor(id: string, activo: boolean) {
   if (error) return { error: 'Error al actualizar el estatus' }
 
   revalidatePath('/admin/catalogos/proveedores')
+  await registrarAccion({ accion: activo ? 'activar' : 'desactivar', modulo: 'catalogos', descripcion: `Proveedor ${activo ? 'activado' : 'desactivado'}`, entidadTipo: 'proveedor', entidadId: id })
   return { success: true }
 }

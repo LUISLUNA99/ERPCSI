@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { registrarAccion } from '@/lib/auditoria'
 
 const bancoSchema = z.object({
   empresa_id: z.string().min(1, 'La empresa es obligatoria'),
@@ -38,6 +39,7 @@ export async function createBanco(formData: FormData) {
   if (error) return { error: 'Error al crear la cuenta bancaria' }
 
   revalidatePath('/admin/catalogos/bancos')
+  await registrarAccion({ accion: 'crear', modulo: 'catalogos', descripcion: `Cuenta bancaria ${parsed.data.banco} creada`, entidadTipo: 'banco', entidadDescripcion: parsed.data.banco })
   return { success: true }
 }
 
@@ -57,6 +59,7 @@ export async function updateBanco(id: string, formData: FormData) {
   if (error) return { error: 'Error al actualizar' }
 
   revalidatePath('/admin/catalogos/bancos')
+  await registrarAccion({ accion: 'editar', modulo: 'catalogos', descripcion: `Cuenta bancaria ${parsed.data.banco} actualizada`, entidadTipo: 'banco', entidadId: id, entidadDescripcion: parsed.data.banco })
   return { success: true }
 }
 
@@ -66,5 +69,6 @@ export async function toggleBanco(id: string, activo: boolean) {
   if (error) return { error: 'Error al actualizar el estatus' }
 
   revalidatePath('/admin/catalogos/bancos')
+  await registrarAccion({ accion: activo ? 'activar' : 'desactivar', modulo: 'catalogos', descripcion: `Cuenta bancaria ${activo ? 'activada' : 'desactivada'}`, entidadTipo: 'banco', entidadId: id })
   return { success: true }
 }

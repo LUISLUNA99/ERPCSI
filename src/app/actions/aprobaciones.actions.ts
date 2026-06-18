@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { sendEmail } from '@/lib/email/send'
+import { registrarAccion } from '@/lib/auditoria'
 import { emailRequisicionAprobada, emailRequisicionRechazada } from '@/lib/email/templates'
 
 export async function aprobarRequisicion(requisicionId: string, observaciones?: string) {
@@ -69,6 +70,16 @@ export async function aprobarRequisicion(requisicionId: string, observaciones?: 
     sendEmail(solicitante.email, emailData.subject, emailData.html).catch(console.error)
   }
 
+  await registrarAccion({
+    accion: 'aprobar',
+    modulo: 'aprobaciones',
+    descripcion: `Solicitud de compra ${req.folio} aprobada`,
+    entidadTipo: 'requisicion',
+    entidadId: requisicionId,
+    entidadDescripcion: req.folio,
+    datosNuevos: { observaciones },
+  })
+
   revalidatePath('/aprobaciones')
   revalidatePath('/requisiciones')
   revalidatePath('/pagos')
@@ -130,6 +141,15 @@ export async function rechazarRequisicion(requisicionId: string, motivo: string)
     sendEmail(solicitante.email, emailData.subject, emailData.html).catch(console.error)
   }
 
+  await registrarAccion({
+    accion: 'rechazar',
+    modulo: 'aprobaciones',
+    descripcion: `Solicitud de compra ${req.folio} rechazada. Motivo: ${motivo}`,
+    entidadTipo: 'requisicion',
+    entidadId: requisicionId,
+    entidadDescripcion: req.folio,
+  })
+
   revalidatePath('/aprobaciones')
   revalidatePath('/requisiciones')
   return { success: true }
@@ -163,6 +183,16 @@ export async function cancelarRequisicion(requisicionId: string, motivo: string)
     estatus_anterior: req.estatus,
     estatus_nuevo: 'CANCELADO',
     comentario: motivo || 'Solicitud de compra cancelada',
+  })
+
+  await registrarAccion({
+    accion: 'cancelar',
+    modulo: 'aprobaciones',
+    descripcion: `Solicitud de compra ${req.folio} cancelada. Motivo: ${motivo}`,
+    entidadTipo: 'requisicion',
+    entidadId: requisicionId,
+    entidadDescripcion: req.folio,
+    datosAnteriores: { estatus: req.estatus },
   })
 
   revalidatePath('/aprobaciones')

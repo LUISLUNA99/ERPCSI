@@ -7,6 +7,7 @@ import { uploadFactura } from '@/lib/supabase/storage'
 import { sendEmail } from '@/lib/email/send'
 import { emailRequisicionEnviada } from '@/lib/email/templates'
 import { z } from 'zod'
+import { registrarAccion } from '@/lib/auditoria'
 
 const requisicionSchema = z.object({
   clasificacion_id: z.string().min(1, 'Selecciona una clasificacion'),
@@ -122,7 +123,10 @@ export async function createRequisicion(formData: FormData, enviar: boolean = fa
     .select('id')
     .single()
 
-  if (error) return { error: 'Error al crear la solicitud de compra: ' + error.message }
+  if (error) {
+    await registrarAccion({ accion: 'crear', modulo: 'requisiciones', descripcion: `Error al crear solicitud de compra: ${error.message}`, resultado: 'fallido' })
+    return { error: 'Error al crear la solicitud de compra: ' + error.message }
+  }
 
   // Subir factura si se adjunto
   const facturaFile = formData.get('factura_file') as File | null
@@ -182,6 +186,12 @@ export async function createRequisicion(formData: FormData, enviar: boolean = fa
     }
   }
 
+  await registrarAccion({ accion: 'crear', modulo: 'requisiciones', descripcion: `Solicitud de compra ${folio} creada`, entidadTipo: 'requisicion', entidadId: data.id, entidadDescripcion: folio })
+
+  if (enviar) {
+    await registrarAccion({ accion: 'enviar', modulo: 'requisiciones', descripcion: `Solicitud de compra ${folio} enviada para aprobacion`, entidadTipo: 'requisicion', entidadId: data.id, entidadDescripcion: folio })
+  }
+
   revalidatePath('/requisiciones')
   revalidatePath('/aprobaciones')
   return { success: true, id: data.id, folio }
@@ -208,7 +218,10 @@ export async function enviarRequisicion(id: string) {
     .update({ estatus: 'EN_REVISION' })
     .eq('id', id)
 
-  if (error) return { error: 'Error al enviar la solicitud de compra' }
+  if (error) {
+    await registrarAccion({ accion: 'enviar', modulo: 'requisiciones', descripcion: `Error al enviar solicitud de compra ${req.folio}`, entidadTipo: 'requisicion', entidadId: id, entidadDescripcion: req.folio, resultado: 'fallido' })
+    return { error: 'Error al enviar la solicitud de compra' }
+  }
 
   await supabase.from('historial_requisiciones').insert({
     requisicion_id: id,
@@ -235,6 +248,8 @@ export async function enviarRequisicion(id: string) {
     }))
     await supabase.from('notificaciones').insert(notificaciones)
   }
+
+  await registrarAccion({ accion: 'enviar', modulo: 'requisiciones', descripcion: `Solicitud de compra ${req.folio} enviada para aprobacion`, entidadTipo: 'requisicion', entidadId: id, entidadDescripcion: req.folio })
 
   revalidatePath('/requisiciones')
   revalidatePath('/aprobaciones')

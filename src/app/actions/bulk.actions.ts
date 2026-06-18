@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { registrarAccion } from '@/lib/auditoria'
 
 interface BulkResult {
   inserted: number
@@ -57,6 +58,7 @@ export async function bulkImportEmpresas(rows: Record<string, string>[]): Promis
   }
 
   revalidatePath('/admin/catalogos/empresas')
+  await registrarAccion({ accion: 'carga_masiva', modulo: 'catalogos', descripcion: `Carga masiva de empresas: ${result.inserted} creados, ${result.updated} actualizados, ${result.errors.length} errores`, entidadTipo: 'empresa', resultado: result.errors.length > 0 ? 'parcial' : 'exitoso', metadata: { inserted: result.inserted, updated: result.updated, errorCount: result.errors.length } })
   return result
 }
 
@@ -124,6 +126,7 @@ export async function bulkImportProveedores(rows: Record<string, string>[]): Pro
   }
 
   revalidatePath('/admin/catalogos/proveedores')
+  await registrarAccion({ accion: 'carga_masiva', modulo: 'catalogos', descripcion: `Carga masiva de proveedores: ${result.inserted} creados, ${result.updated} actualizados, ${result.errors.length} errores`, entidadTipo: 'proveedor', resultado: result.errors.length > 0 ? 'parcial' : 'exitoso', metadata: { inserted: result.inserted, updated: result.updated, errorCount: result.errors.length } })
   return result
 }
 
@@ -173,6 +176,7 @@ export async function bulkImportClasificaciones(rows: Record<string, string>[]):
   }
 
   revalidatePath('/admin/catalogos/clasificaciones')
+  await registrarAccion({ accion: 'carga_masiva', modulo: 'catalogos', descripcion: `Carga masiva de clasificaciones: ${result.inserted} creados, ${result.updated} actualizados, ${result.errors.length} errores`, entidadTipo: 'clasificacion', resultado: result.errors.length > 0 ? 'parcial' : 'exitoso', metadata: { inserted: result.inserted, updated: result.updated, errorCount: result.errors.length } })
   return result
 }
 
@@ -243,6 +247,7 @@ export async function bulkImportBancos(rows: Record<string, string>[]): Promise<
   }
 
   revalidatePath('/admin/catalogos/bancos')
+  await registrarAccion({ accion: 'carga_masiva', modulo: 'catalogos', descripcion: `Carga masiva de cuentas bancarias: ${result.inserted} creados, ${result.updated} actualizados, ${result.errors.length} errores`, entidadTipo: 'banco', resultado: result.errors.length > 0 ? 'parcial' : 'exitoso', metadata: { inserted: result.inserted, updated: result.updated, errorCount: result.errors.length } })
   return result
 }
 
@@ -370,5 +375,6 @@ export async function bulkImportProyectos(rows: Record<string, string>[]): Promi
   }
 
   revalidatePath('/admin/catalogos/proyectos')
+  await registrarAccion({ accion: 'carga_masiva', modulo: 'catalogos', descripcion: `Carga masiva de centros de costo: ${result.inserted} creados, ${result.updated} actualizados, ${result.errors.length} errores`, entidadTipo: 'proyecto', resultado: result.errors.length > 0 ? 'parcial' : 'exitoso', metadata: { inserted: result.inserted, updated: result.updated, errorCount: result.errors.length } })
   return result
 }

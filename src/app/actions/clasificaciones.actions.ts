@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { registrarAccion } from '@/lib/auditoria'
 
 const schema = z.object({
   nombre: z.string().min(1, 'El nombre es obligatorio'),
@@ -35,6 +36,7 @@ export async function createClasificacion(formData: FormData) {
   }
 
   revalidatePath('/admin/catalogos/clasificaciones')
+  await registrarAccion({ accion: 'crear', modulo: 'catalogos', descripcion: `Clasificacion ${parsed.data.nombre} creada`, entidadTipo: 'clasificacion', entidadDescripcion: parsed.data.nombre })
   return { success: true }
 }
 
@@ -54,6 +56,7 @@ export async function updateClasificacion(id: string, formData: FormData) {
   }
 
   revalidatePath('/admin/catalogos/clasificaciones')
+  await registrarAccion({ accion: 'editar', modulo: 'catalogos', descripcion: `Clasificacion ${parsed.data.nombre} actualizada`, entidadTipo: 'clasificacion', entidadId: id, entidadDescripcion: parsed.data.nombre })
   return { success: true }
 }
 
@@ -63,5 +66,6 @@ export async function toggleClasificacion(id: string, activa: boolean) {
   if (error) return { error: 'Error al actualizar el estatus' }
 
   revalidatePath('/admin/catalogos/clasificaciones')
+  await registrarAccion({ accion: activa ? 'activar' : 'desactivar', modulo: 'catalogos', descripcion: `Clasificacion ${activa ? 'activada' : 'desactivada'}`, entidadTipo: 'clasificacion', entidadId: id })
   return { success: true }
 }

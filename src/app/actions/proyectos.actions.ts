@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { registrarAccion } from '@/lib/auditoria'
 
 const proyectoSchema = z.object({
   empresa_id: z.string().min(1, 'La empresa es obligatoria'),
@@ -53,6 +54,7 @@ export async function createCliente(formData: FormData) {
   }
 
   revalidatePath('/admin/catalogos/proyectos')
+  await registrarAccion({ accion: 'crear', modulo: 'catalogos', descripcion: `Cliente ${data.nombre} creado`, entidadTipo: 'cliente', entidadDescripcion: data.nombre })
   return { success: true }
 }
 
@@ -75,6 +77,7 @@ export async function createProyecto(formData: FormData) {
   }
 
   revalidatePath('/admin/catalogos/proyectos')
+  await registrarAccion({ accion: 'crear', modulo: 'catalogos', descripcion: `Proyecto ${parsed.data.centro_de_costo} - ${parsed.data.nombre} creado`, entidadTipo: 'proyecto', entidadDescripcion: parsed.data.centro_de_costo })
   return { success: true }
 }
 
@@ -97,6 +100,7 @@ export async function updateProyecto(id: string, formData: FormData) {
   }
 
   revalidatePath('/admin/catalogos/proyectos')
+  await registrarAccion({ accion: 'editar', modulo: 'catalogos', descripcion: `Proyecto ${parsed.data.centro_de_costo} actualizado`, entidadTipo: 'proyecto', entidadId: id, entidadDescripcion: parsed.data.centro_de_costo })
   return { success: true }
 }
 
@@ -106,5 +110,6 @@ export async function toggleProyecto(id: string, activo: boolean) {
   if (error) return { error: 'Error al actualizar el estatus' }
 
   revalidatePath('/admin/catalogos/proyectos')
+  await registrarAccion({ accion: activo ? 'activar' : 'desactivar', modulo: 'catalogos', descripcion: `Proyecto ${activo ? 'activado' : 'desactivado'}`, entidadTipo: 'proyecto', entidadId: id })
   return { success: true }
 }

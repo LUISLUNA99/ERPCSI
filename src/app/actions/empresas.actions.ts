@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { registrarAccion } from '@/lib/auditoria'
 
 const empresaSchema = z.object({
   codigo: z.string().min(1, 'El codigo es obligatorio'),
@@ -39,6 +40,7 @@ export async function createEmpresa(formData: FormData) {
   }
 
   revalidatePath('/admin/catalogos/empresas')
+  await registrarAccion({ accion: 'crear', modulo: 'catalogos', descripcion: `Empresa ${parsed.data.codigo} - ${parsed.data.nombre} creada`, entidadTipo: 'empresa', entidadDescripcion: parsed.data.codigo })
   return { success: true }
 }
 
@@ -64,6 +66,7 @@ export async function updateEmpresa(id: string, formData: FormData) {
   }
 
   revalidatePath('/admin/catalogos/empresas')
+  await registrarAccion({ accion: 'editar', modulo: 'catalogos', descripcion: `Empresa ${parsed.data.codigo} actualizada`, entidadTipo: 'empresa', entidadId: id, entidadDescripcion: parsed.data.codigo })
   return { success: true }
 }
 
@@ -76,5 +79,6 @@ export async function toggleEmpresa(id: string, activa: boolean) {
   if (error) return { error: 'Error al actualizar el estatus' }
 
   revalidatePath('/admin/catalogos/empresas')
+  await registrarAccion({ accion: activa ? 'activar' : 'desactivar', modulo: 'catalogos', descripcion: `Empresa ${activa ? 'activada' : 'desactivada'}`, entidadTipo: 'empresa', entidadId: id })
   return { success: true }
 }
