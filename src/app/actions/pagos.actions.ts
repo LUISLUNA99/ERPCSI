@@ -16,7 +16,7 @@ export async function getRequisicionesPorPagar() {
       empresas_generadora:empresas!requisiciones_empresa_generadora_id_fkey(nombre, codigo),
       empresas_paga:empresas!requisiciones_empresa_paga_id_fkey(nombre, codigo),
       proveedores(nombre),
-      clasificaciones_gasto(nombre),
+      clasificaciones_gasto!requisiciones_clasificacion_id_fkey(nombre),
       clasificacion_final:clasificaciones_gasto!requisiciones_clasificacion_final_id_fkey(nombre),
       perfiles!requisiciones_solicitante_id_fkey(nombre),
       pagos(id, fecha_programada, banco_empresa:bancos_empresa(banco, numero_cuenta))

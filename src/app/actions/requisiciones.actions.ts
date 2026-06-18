@@ -42,7 +42,7 @@ export async function getRequisiciones(filters?: {
       empresas_generadora:empresas!requisiciones_empresa_generadora_id_fkey(nombre, codigo),
       empresas_paga:empresas!requisiciones_empresa_paga_id_fkey(nombre, codigo),
       proveedores(nombre),
-      clasificaciones_gasto(nombre),
+      clasificaciones_gasto!requisiciones_clasificacion_id_fkey(nombre),
       clasificacion_final:clasificaciones_gasto!requisiciones_clasificacion_final_id_fkey(nombre),
       proyectos(centro_de_costo, nombre),
       perfiles!requisiciones_solicitante_id_fkey(nombre)
@@ -67,7 +67,7 @@ export async function getRequisicionById(id: string) {
       empresas_generadora:empresas!requisiciones_empresa_generadora_id_fkey(nombre, codigo),
       empresas_paga:empresas!requisiciones_empresa_paga_id_fkey(nombre, codigo),
       proveedores(nombre, rfc, banco, clabe),
-      clasificaciones_gasto(nombre),
+      clasificaciones_gasto!requisiciones_clasificacion_id_fkey(nombre),
       clasificacion_final:clasificaciones_gasto!requisiciones_clasificacion_final_id_fkey(nombre),
       proyectos(centro_de_costo, nombre),
       perfiles!requisiciones_solicitante_id_fkey(nombre, email),
