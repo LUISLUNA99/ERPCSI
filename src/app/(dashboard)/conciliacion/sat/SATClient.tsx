@@ -488,6 +488,7 @@ export function SATClient({ empresas }: { empresas: Empresa[] }) {
                   <TableHeader>
                     <TableRow>
                       <SortableHeader label="Periodo" sortKey="anio_periodo" sortConfig={sortConfigSol} onSort={handleSortSol} />
+                      <SortableHeader label="ID SAT" sortKey="id_solicitud_sat" sortConfig={sortConfigSol} onSort={handleSortSol} />
                       <SortableHeader label="Tipo" sortKey="tipo" sortConfig={sortConfigSol} onSort={handleSortSol} />
                       <SortableHeader label="Formato" sortKey="formato" sortConfig={sortConfigSol} onSort={handleSortSol} />
                       <SortableHeader label="CFDIs" sortKey="total_cfdi" sortConfig={sortConfigSol} onSort={handleSortSol} className="text-right" />
@@ -507,6 +508,9 @@ export function SATClient({ empresas }: { empresas: Empresa[] }) {
                           <TableCell className="font-medium">
                             {sol.mes_periodo && sol.anio_periodo ? `${sol.mes_periodo}-${sol.anio_periodo}` : '-'}
                           </TableCell>
+                          <TableCell className="font-mono text-xs" title={sol.id_solicitud_sat || ''}>
+                            {sol.id_solicitud_sat ? sol.id_solicitud_sat.substring(0, 8) + '...' : '-'}
+                          </TableCell>
                           <TableCell className="capitalize">{sol.tipo}</TableCell>
                           <TableCell className="uppercase text-xs">{sol.formato || '-'}</TableCell>
                           <TableCell className="text-right">{sol.total_cfdi ?? '-'}</TableCell>
@@ -520,6 +524,9 @@ export function SATClient({ empresas }: { empresas: Empresa[] }) {
                             </Badge>
                             {sol.estatus === 'error' && sol.mensaje_error && (
                               <p className="text-xs text-red-500 mt-1 max-w-[200px] truncate" title={sol.mensaje_error}>{sol.mensaje_error}</p>
+                            )}
+                            {(sol.estatus === 'pendiente' || sol.estatus === 'verificando') && sol.id_solicitud_sat && (
+                              <p className="text-[11px] text-gray-400 mt-1 font-mono">ID SAT: {sol.id_solicitud_sat}</p>
                             )}
                           </TableCell>
                           <TableCell>{sol.perfiles?.nombre || '-'}</TableCell>
