@@ -13,6 +13,7 @@ import { getClientes } from '@/app/actions/proyectos.actions'
 import { Loader2, Save, Send, Upload, X, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 import { getMesesOptions } from '@/lib/utils/meses'
+import { Combobox } from '@/components/ui/combobox'
 
 interface Props {
   empresas: { id: string; codigo: string; nombre: string }[]
@@ -199,14 +200,19 @@ export function NuevaRequisicionForm({ empresas, proveedores, clasificaciones, p
           </div>
           <div className="space-y-2">
             <Label>Proyecto / Centro de costo</Label>
-            <Select value={proyectoId} onValueChange={setProyectoId} disabled={!empresaGenId}>
-              <SelectTrigger><SelectValue placeholder={empresaGenId ? 'Selecciona proyecto' : 'Primero selecciona empresa'} /></SelectTrigger>
-              <SelectContent>
-                {proyectosFiltrados.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>{p.centro_de_costo} - {p.nombre}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Combobox
+              options={proyectosFiltrados.map((p) => ({
+                value: p.id,
+                label: `${p.centro_de_costo} - ${p.nombre}`,
+                searchText: `${p.centro_de_costo} ${p.nombre}`,
+              }))}
+              value={proyectoId}
+              onValueChange={setProyectoId}
+              placeholder={empresaGenId ? 'Buscar proyecto...' : 'Primero selecciona empresa'}
+              searchPlaceholder="Buscar por nombre o centro de costo..."
+              emptyText="No se encontraron proyectos."
+              disabled={!empresaGenId}
+            />
           </div>
         </CardContent>
       </Card>
@@ -217,16 +223,18 @@ export function NuevaRequisicionForm({ empresas, proveedores, clasificaciones, p
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label>Proveedor</Label>
-            <Select value={proveedorId} onValueChange={setProveedorId}>
-              <SelectTrigger><SelectValue placeholder="Buscar proveedor..." /></SelectTrigger>
-              <SelectContent>
-                {proveedores.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.nombre} {p.rfc ? `(${p.rfc})` : ''}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Combobox
+              options={proveedores.map((p) => ({
+                value: p.id,
+                label: `${p.nombre}${p.rfc ? ` (${p.rfc})` : ''}`,
+                searchText: `${p.nombre} ${p.rfc || ''}`,
+              }))}
+              value={proveedorId}
+              onValueChange={setProveedorId}
+              placeholder="Buscar proveedor..."
+              searchPlaceholder="Buscar por nombre o RFC..."
+              emptyText="No se encontraron proveedores."
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="concepto">Concepto del pago *</Label>
