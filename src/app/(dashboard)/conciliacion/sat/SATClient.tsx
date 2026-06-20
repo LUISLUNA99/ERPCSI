@@ -23,7 +23,8 @@ import { generateCSV, downloadCSV } from '@/lib/csv'
 import { useSort } from '@/hooks/useSort'
 import { SortableHeader } from '@/components/SortableHeader'
 import { obtenerAnaliticaSAT, type AnaliticaSAT } from '@/app/actions/sat/obtener-analitica.actions'
-import { BarChart3 } from 'lucide-react'
+import { previsualizarXMLs, confirmarCargaManual, type PreviewResult } from '@/app/actions/sat/cargar-xmls-manual.actions'
+import { BarChart3, Upload, CloudUpload, ChevronDown } from 'lucide-react'
 
 interface Empresa {
   id: string
@@ -125,6 +126,16 @@ export function SATClient({ empresas }: { empresas: Empresa[] }) {
   const [verificandoId, setVerificandoId] = useState<string | null>(null)
   const [analitica, setAnalitica] = useState<AnaliticaSAT | null>(null)
   const [loadingAnalitica, setLoadingAnalitica] = useState(false)
+
+  // Carga manual
+  const [manualEmpresa, setManualEmpresa] = useState('')
+  const [manualTipo, setManualTipo] = useState<'EMITIDA' | 'RECIBIDA'>('RECIBIDA')
+  const [manualFiles, setManualFiles] = useState<File[]>([])
+  const [manualParsing, setManualParsing] = useState(false)
+  const [manualPreview, setManualPreview] = useState<PreviewResult | null>(null)
+  const [manualConfirming, setManualConfirming] = useState(false)
+  const [manualHelpOpen, setManualHelpOpen] = useState(false)
+  const [dragOver, setDragOver] = useState(false)
 
   const { sorted: sortedSolicitudes, sortConfig: sortConfigSol, handleSort: handleSortSol } = useSort(solicitudes)
   const { sorted: sortedCfdis, sortConfig: sortConfigCfdi, handleSort: handleSortCfdi } = useSort(cfdis)
@@ -316,6 +327,106 @@ export function SATClient({ empresas }: { empresas: Empresa[] }) {
   const empresaActual = empresas.find((e) => e.id === selectedEmpresa)
   const totalCfdiPages = Math.ceil(cfdiTotal / 50)
 
+  // Manual upload handlers
+  async function extractXMLsFromFiles(files: File[]): Promise<string[]> {
+    const JSZip = (await import('jszip')).default
+    const xmlStrings: string[] = []
+
+    for (const file of files) {
+      if (file.name.toLowerCase().endsWith('.zip')) {
+        try {
+          const buf = await file.arrayBuffer()
+          const zip = await JSZip.loadAsync(buf)
+          const xmlFiles = Object.keys(zip.files).filter((n) => n.toLowerCase().endsWith('.xml'))
+          for (const name of xmlFiles) {
+            const content = await zip.files[name].async('string')
+            xmlStrings.push(content)
+          }
+        } catch {
+          toast.error(`Error al leer ZIP: ${file.name}`)
+        }
+      } else if (file.name.toLowerCase().endsWith('.xml')) {
+        const text = await file.text()
+        xmlStrings.push(text)
+      }
+    }
+    return xmlStrings
+  }
+
+  async function handleManualParse() {
+    if (!manualEmpresa || manualFiles.length === 0) {
+      toast.error('Selecciona empresa y archivos')
+      return
+    }
+    setManualParsing(true)
+    setManualPreview(null)
+    try {
+      const xmlStrings = await extractXMLsFromFiles(manualFiles)
+      if (xmlStrings.length === 0) {
+        toast.error('No se encontraron XMLs en los archivos seleccionados')
+        setManualParsing(false)
+        return
+      }
+      if (xmlStrings.length > 500) {
+        toast.error(`Maximo 500 XMLs por carga. Se encontraron ${xmlStrings.length}`)
+        setManualParsing(false)
+        return
+      }
+      const result = await previsualizarXMLs(xmlStrings, manualEmpresa, manualTipo)
+      if (result.error) {
+        toast.error(result.error)
+      } else if (result.data) {
+        setManualPreview(result.data)
+      }
+    } catch {
+      toast.error('Error al procesar los archivos')
+    }
+    setManualParsing(false)
+  }
+
+  async function handleManualConfirm() {
+    if (!manualPreview || !manualEmpresa) return
+    setManualConfirming(true)
+    try {
+      const result = await confirmarCargaManual(manualPreview.xmlContents, manualEmpresa, manualTipo)
+      if (result.error) {
+        toast.error(result.error)
+      } else {
+        toast.success(`${result.cfdisProcesados} CFDIs cargados exitosamente`)
+        setManualFiles([])
+        setManualPreview(null)
+        // Refresh data if same empresa selected
+        if (manualEmpresa === selectedEmpresa) {
+          cargarCFDIs()
+        }
+      }
+    } catch {
+      toast.error('Error al guardar los CFDIs')
+    }
+    setManualConfirming(false)
+  }
+
+  function handleManualDrop(e: React.DragEvent) {
+    e.preventDefault()
+    setDragOver(false)
+    const files = Array.from(e.dataTransfer.files).filter(
+      (f) => f.name.toLowerCase().endsWith('.xml') || f.name.toLowerCase().endsWith('.zip')
+    )
+    if (files.length === 0) {
+      toast.error('Solo se aceptan archivos .xml o .zip')
+      return
+    }
+    setManualFiles(files)
+    setManualPreview(null)
+  }
+
+  function handleManualFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0) return
+    setManualFiles(files)
+    setManualPreview(null)
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader title="Conciliacion SAT" description="Descarga y gestion de CFDIs desde el portal del SAT" />
@@ -404,6 +515,185 @@ export function SATClient({ empresas }: { empresas: Empresa[] }) {
           </CardContent>
         </Card>
       )}
+
+      {/* Section 1b: Carga manual de XMLs */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2" style={{ color: '#1B3A6B' }}>
+            <Upload className="h-5 w-5" />
+            Carga manual de XMLs
+          </CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">
+            Sube XMLs descargados manualmente del portal del SAT como alternativa a la descarga automatica.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-1 block">Empresa *</label>
+              <Select value={manualEmpresa} onValueChange={(v) => { setManualEmpresa(v); setManualPreview(null) }}>
+                <SelectTrigger><SelectValue placeholder="Selecciona empresa" /></SelectTrigger>
+                <SelectContent>
+                  {empresas.map((e) => (
+                    <SelectItem key={e.id} value={e.id}>{e.codigo} - {e.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-1 block">Tipo *</label>
+              <Select value={manualTipo} onValueChange={(v) => { setManualTipo(v as 'EMITIDA' | 'RECIBIDA'); setManualPreview(null) }}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="RECIBIDA">Recibidas (proveedores)</SelectItem>
+                  <SelectItem value="EMITIDA">Emitidas (clientes)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Drop zone */}
+          <div
+            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
+              dragOver ? 'border-blue-400 bg-blue-50' : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+            }`}
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleManualDrop}
+            onClick={() => document.getElementById('manual-xml-input')?.click()}
+          >
+            <CloudUpload className={`h-10 w-10 mx-auto mb-3 ${dragOver ? 'text-blue-500' : 'text-gray-300'}`} />
+            <p className="text-sm font-medium text-gray-700">
+              Arrastra tus XMLs del SAT aqui o haz clic para seleccionar
+            </p>
+            <p className="text-xs text-gray-400 mt-1">Formatos: .xml, .zip — Maximo 500 archivos por carga</p>
+            <input
+              id="manual-xml-input"
+              type="file"
+              accept=".xml,.zip"
+              multiple
+              className="hidden"
+              onChange={handleManualFileSelect}
+            />
+          </div>
+
+          {/* Selected files info */}
+          {manualFiles.length > 0 && !manualPreview && (
+            <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-blue-600" />
+                <div>
+                  <p className="text-sm font-medium text-blue-800">
+                    {manualFiles.length} archivo{manualFiles.length !== 1 ? 's' : ''} seleccionado{manualFiles.length !== 1 ? 's' : ''}
+                  </p>
+                  <p className="text-xs text-blue-600">
+                    {manualFiles.map((f) => f.name).join(', ').substring(0, 100)}{manualFiles.map((f) => f.name).join(', ').length > 100 ? '...' : ''}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => { setManualFiles([]); setManualPreview(null) }}
+                  className="text-red-500 hover:text-red-700"
+                >
+                  <XCircle className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleManualParse}
+                  disabled={!manualEmpresa || manualParsing}
+                  className="text-white"
+                  style={{ backgroundColor: '#2563EB' }}
+                >
+                  {manualParsing ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" />Procesando...</> : <><Eye className="h-4 w-4 mr-1" />Previsualizar</>}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Preview */}
+          {manualPreview && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="bg-gray-50 rounded-lg p-3 text-center">
+                  <p className="text-xs text-muted-foreground">CFDIs encontrados</p>
+                  <p className="text-xl font-bold" style={{ color: '#1B3A6B' }}>{manualPreview.totalCfdis}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Monto total</p>
+                  <p className="text-lg font-bold" style={{ color: '#1B3A6B' }}>{formatMoney(manualPreview.montoTotal)}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Rango de fechas</p>
+                  <p className="text-sm font-medium">
+                    {manualPreview.fechaMin ? new Date(manualPreview.fechaMin).toLocaleDateString('es-MX') : '—'}
+                    {' → '}
+                    {manualPreview.fechaMax ? new Date(manualPreview.fechaMax).toLocaleDateString('es-MX') : '—'}
+                  </p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Tipo</p>
+                  <p className="text-sm font-medium">{manualTipo === 'EMITIDA' ? `${manualPreview.emitidas} emitidas` : `${manualPreview.recibidas} recibidas`}</p>
+                </div>
+              </div>
+
+              {manualPreview.duplicados > 0 && (
+                <div className="flex items-start gap-2 text-sm bg-amber-50 border border-amber-200 p-3 rounded-lg">
+                  <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                  <span className="text-amber-700">
+                    {manualPreview.duplicados} CFDI{manualPreview.duplicados !== 1 ? 's' : ''} ya existe{manualPreview.duplicados !== 1 ? 'n' : ''} en el sistema. Se actualizaran con los datos nuevos.
+                  </span>
+                </div>
+              )}
+
+              <div className="flex items-center gap-3">
+                <Button
+                  onClick={handleManualConfirm}
+                  disabled={manualConfirming}
+                  className="text-white"
+                  style={{ backgroundColor: '#16A34A' }}
+                >
+                  {manualConfirming ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" />Guardando...</> : <><CheckCircle2 className="h-4 w-4 mr-1" />Confirmar carga de {manualPreview.totalCfdis} CFDIs</>}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => { setManualPreview(null); setManualFiles([]) }}
+                  disabled={manualConfirming}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Help accordion */}
+          <button
+            type="button"
+            onClick={() => setManualHelpOpen(!manualHelpOpen)}
+            className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800"
+          >
+            <Info className="h-4 w-4" />
+            Como descargar tus XMLs del SAT?
+            <ChevronDown className={`h-4 w-4 transition-transform ${manualHelpOpen ? 'rotate-180' : ''}`} />
+          </button>
+          {manualHelpOpen && (
+            <div className="text-sm text-gray-600 bg-blue-50 border border-blue-100 rounded-lg p-4 space-y-2">
+              <p className="font-medium text-gray-700">Pasos para descargar XMLs desde el portal del SAT:</p>
+              <ol className="list-decimal list-inside space-y-1">
+                <li>Ingresa a <span className="font-mono text-xs">portalcfdi.facturaelectronica.sat.gob.mx</span></li>
+                <li>Inicia sesion con tu e.firma o CIEC</li>
+                <li>Ve a &quot;Consultar facturas recibidas&quot; o &quot;emitidas&quot;</li>
+                <li>Filtra por rango de fechas deseado</li>
+                <li>Selecciona las facturas y da clic en &quot;Descargar&quot;</li>
+                <li>Descarga el ZIP o los XMLs individuales</li>
+                <li>Sube los archivos aqui</li>
+              </ol>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Section 2: Carga historica */}
       {selectedEmpresa && !tieneHistorico && !loadingSolicitudes && (
