@@ -3,7 +3,7 @@ import { updateSession } from '@/lib/supabase/middleware'
 import type { Rol } from '@/types/database.types'
 
 // Rutas públicas que no requieren autenticación
-const PUBLIC_ROUTES = ['/login', '/auth/callback']
+const PUBLIC_ROUTES = ['/login', '/auth/callback', '/acceso-pendiente', '/sin-permisos']
 
 // Mapa de rutas protegidas y qué roles pueden acceder
 const ROUTE_PERMISSIONS: Record<string, Rol[]> = {
@@ -66,6 +66,13 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     url.searchParams.set('error', 'sin_acceso')
+    return NextResponse.redirect(url)
+  }
+
+  // Rol pendiente → redirigir a acceso-pendiente
+  if (perfil.rol === 'pendiente') {
+    const url = request.nextUrl.clone()
+    url.pathname = '/acceso-pendiente'
     return NextResponse.redirect(url)
   }
 

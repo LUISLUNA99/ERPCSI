@@ -9,6 +9,17 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Building2, Eye, EyeOff, Loader2 } from 'lucide-react'
 
+function MicrosoftIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg">
+      <rect x="1" y="1" width="9" height="9" fill="#F25022" />
+      <rect x="11" y="1" width="9" height="9" fill="#7FBA00" />
+      <rect x="1" y="11" width="9" height="9" fill="#00A4EF" />
+      <rect x="11" y="11" width="9" height="9" fill="#FFB900" />
+    </svg>
+  )
+}
+
 export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -16,10 +27,35 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [loadingMicrosoft, setLoadingMicrosoft] = useState(false)
   const [error, setError] = useState('')
 
   const errorParam = searchParams.get('error')
   const redirect = searchParams.get('redirect')
+
+  async function handleMicrosoftLogin() {
+    setError('')
+    setLoadingMicrosoft(true)
+
+    try {
+      const supabase = createClient()
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: 'azure',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          scopes: 'email profile openid',
+        },
+      })
+
+      if (oauthError) {
+        setError('Error al conectar con Microsoft. Intenta de nuevo.')
+        setLoadingMicrosoft(false)
+      }
+    } catch {
+      setError('Error de conexion. Verifica tu internet e intenta de nuevo.')
+      setLoadingMicrosoft(false)
+    }
+  }
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -52,6 +88,11 @@ export default function LoginPage() {
       if (!perfil || !perfil.activo) {
         await supabase.auth.signOut()
         setError('Tu cuenta esta desactivada. Contacta al administrador.')
+        return
+      }
+
+      if (perfil.rol === 'pendiente') {
+        router.push('/acceso-pendiente')
         return
       }
 
@@ -108,6 +149,34 @@ export default function LoginPage() {
             </div>
           )}
 
+          {/* Boton Microsoft */}
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full h-11 bg-white border-gray-300 text-gray-800 font-medium hover:bg-gray-50"
+            onClick={handleMicrosoftLogin}
+            disabled={loadingMicrosoft || loading}
+          >
+            {loadingMicrosoft ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <MicrosoftIcon className="w-5 h-5 mr-2" />
+            )}
+            Iniciar sesion con Microsoft
+          </Button>
+
+          {/* Separador */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-gray-200" />
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-white px-3 text-muted-foreground">
+                o continua con email
+              </span>
+            </div>
+          </div>
+
           <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium">
@@ -120,7 +189,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                disabled={loading}
+                disabled={loading || loadingMicrosoft}
                 className="h-11"
                 autoComplete="email"
               />
@@ -138,7 +207,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  disabled={loading}
+                  disabled={loading || loadingMicrosoft}
                   className="h-11 pr-10"
                   autoComplete="current-password"
                 />
@@ -160,7 +229,7 @@ export default function LoginPage() {
             <Button
               type="submit"
               className="w-full h-11 bg-primary-500 hover:bg-primary-600 text-white font-medium"
-              disabled={loading}
+              disabled={loading || loadingMicrosoft}
             >
               {loading ? (
                 <>
@@ -178,7 +247,7 @@ export default function LoginPage() {
               type="button"
               className="text-sm text-accent-500 hover:text-accent-600 hover:underline transition-colors"
               onClick={() => {
-                // TODO: Implementar recuperación de contraseña
+                // TODO: Implementar recuperacion de contrasena
                 alert('Contacta al administrador para recuperar tu acceso.')
               }}
             >
@@ -191,7 +260,7 @@ export default function LoginPage() {
       {/* Footer */}
       <div className="absolute bottom-6 text-center text-white/60 text-xs">
         <p>Grupo CSI &copy; {new Date().getFullYear()}</p>
-        <p className="mt-1 text-white/30">v1.3.1</p>
+        <p className="mt-1 text-white/30">v1.4.0</p>
       </div>
     </div>
   )

@@ -19,11 +19,17 @@ const updateUserSchema = z.object({
   empresa_id: z.string().optional(),
 })
 
+const aprobarUserSchema = z.object({
+  rol: z.enum(['admin', 'director', 'tesorero', 'operario', 'visualizador']),
+  empresa_id: z.string().optional(),
+})
+
 export async function getUsuarios() {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('perfiles')
     .select('*, empresas(nombre, codigo)')
+    .order('rol', { ascending: true })
     .order('nombre')
   if (error) throw error
   return data
@@ -101,6 +107,91 @@ export async function updateUsuario(id: string, formData: FormData) {
 
   revalidatePath('/admin/usuarios')
   await registrarAccion({ accion: 'editar', modulo: 'usuarios', descripcion: `Usuario actualizado`, entidadTipo: 'usuario', entidadId: id })
+  return { success: true }
+}
+
+export async function aprobarUsuario(id: string, formData: FormData) {
+  const supabase = await createClient()
+  const parsed = aprobarUserSchema.safeParse({
+    rol: formData.get('rol'),
+    empresa_id: formData.get('empresa_id') || undefined,
+  })
+
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
+
+  // Verificar que el usuario esta pendiente
+  const { data: perfil } = await supabase
+    .from('perfiles')
+    .select('nombre, email, rol')
+    .eq('id', id)
+    .single()
+
+  if (!perfil) return { error: 'Usuario no encontrado' }
+  if (perfil.rol !== 'pendiente') return { error: 'El usuario ya fue aprobado' }
+
+  const { error } = await supabase
+    .from('perfiles')
+    .update({
+      rol: parsed.data.rol,
+      empresa_id: parsed.data.empresa_id || null,
+    })
+    .eq('id', id)
+
+  if (error) return { error: 'Error al aprobar el usuario' }
+
+  // Notificar al usuario aprobado
+  await supabase.from('notificaciones').insert({
+    usuario_id: id,
+    tipo: 'acceso_aprobado',
+    titulo: 'Tu acceso al ERP CSI fue aprobado',
+    mensaje: 'Ya puedes ingresar con tu cuenta de Microsoft.',
+  })
+
+  revalidatePath('/admin/usuarios')
+  await registrarAccion({
+    accion: 'aprobar_usuario',
+    modulo: 'usuarios',
+    descripcion: `Usuario ${perfil.nombre} (${perfil.email}) aprobado con rol ${parsed.data.rol}`,
+    entidadTipo: 'usuario',
+    entidadId: id,
+  })
+  return { success: true }
+}
+
+export async function rechazarUsuario(id: string) {
+  const supabase = await createClient()
+
+  const { data: perfil } = await supabase
+    .from('perfiles')
+    .select('nombre, email, rol')
+    .eq('id', id)
+    .single()
+
+  if (!perfil) return { error: 'Usuario no encontrado' }
+
+  const { error } = await supabase
+    .from('perfiles')
+    .update({ activo: false })
+    .eq('id', id)
+
+  if (error) return { error: 'Error al rechazar el usuario' }
+
+  // Notificar al usuario rechazado
+  await supabase.from('notificaciones').insert({
+    usuario_id: id,
+    tipo: 'acceso_rechazado',
+    titulo: 'Tu solicitud de acceso fue rechazada',
+    mensaje: 'Contacta a tu administrador para mas informacion.',
+  })
+
+  revalidatePath('/admin/usuarios')
+  await registrarAccion({
+    accion: 'rechazar_usuario',
+    modulo: 'usuarios',
+    descripcion: `Usuario ${perfil.nombre} (${perfil.email}) rechazado`,
+    entidadTipo: 'usuario',
+    entidadId: id,
+  })
   return { success: true }
 }
 

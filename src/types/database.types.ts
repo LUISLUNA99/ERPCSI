@@ -1,4 +1,6 @@
-export type Rol = 'admin' | 'director' | 'tesorero' | 'operario' | 'visualizador'
+export type Rol = 'admin' | 'director' | 'tesorero' | 'operario' | 'visualizador' | 'pendiente'
+
+export type ProveedorAuth = 'email' | 'microsoft'
 
 export type EstatusRequisicion =
   | 'BORRADOR'
@@ -21,6 +23,8 @@ export interface Perfil {
   rol: Rol
   empresa_id: string | null
   activo: boolean
+  proveedor_auth: ProveedorAuth
+  foto_url: string | null
   created_at: string
   updated_at: string
 }
