@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { registrarAccion } from '@/lib/auditoria'
+import { createServiceClient } from '@/lib/supabase/server'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -97,7 +98,10 @@ export async function GET(request: Request) {
   }
 
   // Usuario nuevo del dominio — crear perfil pendiente
-  await supabase.from('perfiles').insert({
+  // Usar service client para bypass de RLS (el usuario nuevo aún no tiene perfil)
+  const supabaseAdmin = await createServiceClient()
+
+  await supabaseAdmin.from('perfiles').insert({
     id: microsoftUser.id,
     nombre,
     email,
@@ -108,14 +112,14 @@ export async function GET(request: Request) {
   })
 
   // Notificar a todos los admins
-  const { data: admins } = await supabase
+  const { data: admins } = await supabaseAdmin
     .from('perfiles')
     .select('id')
     .eq('rol', 'admin')
     .eq('activo', true)
 
   for (const admin of admins || []) {
-    await supabase.from('notificaciones').insert({
+    await supabaseAdmin.from('notificaciones').insert({
       usuario_id: admin.id,
       tipo: 'nuevo_usuario',
       titulo: 'Nuevo usuario pendiente de aprobacion',
